@@ -8,10 +8,69 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(tidyverse)
 ```
 
 ```{r}
-library(readxl)
-exonerees <- read_excel("publicspreadsheet.xlsx", )
+exonerees <- read.csv("publicspreadsheet.csv")
+
+# Identify variables with missing data
+colSums(is.na(exonerees))[colSums(is.na(exonerees)) != 0]
+# Identify rows with missing data
+exonerees[is.na(exonerees$Age),]
 ```
+
+## Data Summaries
+
+### Personal Demographics 
+Name, race, age at crime, sex
+
+```{r}
+exonerees %>%
+  dplyr::select(Last.Name, First.Name, Race, Age, Sex) %>%
+  dplyr::mutate_if(is.character, as.factor) %>%
+  summary
+```
+
+
+### Details of the Crime 
+State, county, year, criminal charge, and tags indicating factors relating to charges (e.g., co-defendant confession, federal prosecution, child abuse, plea deal, etc.). 
+
+```{r}
+exonerees %>%
+  dplyr::select(State, County, Date.of.Crime.Year, Worst.Crime.Display) %>%
+  dplyr::mutate_all(as.factor) %>%
+  summary
+
+# count number of federal cases with only one federal district in that state,
+# such that County == ""
+# exonerees %>%
+  # select(County) %>% mutate_at(c("County"), as.factor) %>%
+  # filter(County == "") %>%
+  # nrow
+```
+
+### Details of the Exoneration 
+Sentence, date convicted, date released, and tags indicating factors relating to evidence (e.g., false confession, mistaken witness ID, false or misleading forensic evidence, inadequate legal defense, etc.).
+
+```{r}
+exonerees %>%
+  dplyr::select(Sentence, Date.of.1st.Conviction, Date.of.Release, Date.of.Exoneration) %>%
+  dplyr::mutate_at(c("Sentence"), as.factor) %>%
+  summary
+```
+### Tags
+
+```{r}
+tags_list <- exonerees %>%
+  dplyr::select(Tags) %>%
+  dplyr::mutate(Tags = strsplit(Tags, ";#"))
+
+max_tags <- max(sapply(tags_list$Tags, length))
+
+df_list_padded <- lapply(tags_list$Tags, function(x) c(x, rep(NA, max_tags - length(x))))
+
+
+```
+
 
