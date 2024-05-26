@@ -9,10 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
+library(gridExtra)
 ```
 
 ```{r}
-exonerees <- read.csv("publicspreadsheet.csv")
+exonerees <- read.csv("publicspreadsheet-may2024.csv",
+                      na.strings = c("NA", "Don't Know", ""))
 
 # Identify variables with missing data
 colSums(is.na(exonerees))[colSums(is.na(exonerees)) != 0]
@@ -31,7 +33,6 @@ exonerees %>%
   dplyr::mutate_if(is.character, as.factor) %>%
   summary
 ```
-
 
 ### Details of the Crime 
 State, county, year, criminal charge, and tags indicating factors relating to charges (e.g., co-defendant confession, federal prosecution, child abuse, plea deal, etc.). 
@@ -55,7 +56,8 @@ Sentence, date convicted, date released, and tags indicating factors relating to
 
 ```{r}
 exonerees %>%
-  dplyr::select(Sentence, Date.of.1st.Conviction, Date.of.Release, Date.of.Exoneration) %>%
+  dplyr::select(Sentence, Date.of.1st.Conviction, Date.of.Release, 
+                Date.of.Exoneration) %>%
   dplyr::mutate_at(c("Sentence"), as.factor) %>%
   summary
 ```
@@ -70,7 +72,107 @@ max_tags <- max(sapply(tags_list$Tags, length))
 
 df_list_padded <- lapply(tags_list$Tags, function(x) c(x, rep(NA, max_tags - length(x))))
 
+df_padded <- as.data.frame(do.call(rbind, df_list_padded))
+
+head(df_padded)
+colnames(df_padded) <- paste0("tag_", 1:max_tags)
 
 ```
+```{r}
+# plot of number of exonerees over year by race
+exonerees <- exonerees %>%
+  mutate(Date.of.Crime.Year = gsub(",", "", Date.of.Crime.Year),
+         Date.of.Crime.Year = as.numeric(Date.of.Crime.Year))
+
+# plot of number of exonerees over year by race
+exonerees %>%
+  filter(Date.of.Crime.Year >= 1989) %>%
+  group_by(Race, Date.of.Crime.Year) %>%
+  summarize(Count = n()) %>%
+  ggplot(aes(x = Date.of.Crime.Year, y = Count, color = Race)) +
+    geom_point() +
+    geom_smooth(se = FALSE) +
+    scale_x_continuous(
+      breaks = seq(min(exonerees$Date.of.Crime.Year, na.rm = TRUE),
+                   max(exonerees$Date.of.Crime.Year, na.rm = TRUE),
+                                    by = 5)) +
+    theme_bw()
+
+
+# plot of number of exonerees over age by race
+exonerees %>%
+  filter(Date.of.Crime.Year >= 1989) %>%
+  group_by(Race, Age) %>%
+  summarize(Count = n()) %>%
+  ggplot(aes(x = Age, y = Count, color = Race)) +
+    geom_point(alpha = .4) +
+    geom_smooth(se = FALSE) +
+    scale_x_continuous(
+      breaks = seq(min(exonerees$Age, na.rm = TRUE),
+                   max(exonerees$Age, na.rm = TRUE),
+                                    by = 5)) +
+    theme_bw()
+
+# boxplot of age by race, faceted by sex 
+exonerees %>%
+  filter(Date.of.Crime.Year >= 1989) %>%
+  group_by(Race, Age, Sex) %>%
+  summarize(Count = n()) %>%
+  ggplot(aes(y = Age, x = Race, color = Race)) +
+    geom_boxplot() +
+    geom_jitter(width = 0.1) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(vars(Sex))
+
+
+worst.crime.by.race <- exonerees %>%
+  filter(Date.of.Crime.Year >= 1989) %>%
+  mutate(Worst.Crime.Display = as.factor(Worst.Crime.Display)) %>%
+  group_by(Race, Worst.Crime.Display) %>%
+  summarize(Count = n())
+
+# Ordered by count
+worst.crime.by.race %>%
+  arrange(desc(Count)) %>%
+  filter(Count >= 50)
+
+# Ordered by race
+worst.crime.by.race %>%
+  arrange(Race, desc(Count)) %>%
+  filter(Count >= 30)
+
+# Ordered by crime
+worst.crime.by.race %>%
+  arrange(Worst.Crime.Display, desc(Count)) %>%
+  select(Worst.Crime.Display, everything()) %>%
+  filter(Count >= 30)
+
+# table of sentence by race
+exonerees %>%
+  dplyr::mutate_at(c("Sentence"), as.factor) %>%
+  group_by(Race, Sentence) %>%
+  summarize(Count = n()) %>%
+  arrange(Sentence, desc(Count)) %>%
+  filter(Count > 50)
+  
+
+exonerees %>%
+  group_by(State) %>%
+  summarize(Count = n()) %>%
+  filter(Count >= 50) %>%
+  arrange(desc(Count))
+
+exonerees %>%
+  group_by(State, Race) %>%
+  summarize(Count = n()) %>%
+  ungroup(Race) %>%
+  mutate(Total = sum(Count),
+         Prop = round(Count/sum(Count), 2)) %>%
+  filter(Count >= 50) %>%
+  arrange(desc(Total), State, desc(Prop)) %>%
+  select(Total, everything())
+```
+
 
 

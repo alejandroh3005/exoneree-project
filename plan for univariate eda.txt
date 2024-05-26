@@ -1,0 +1,87 @@
+=====================
+DEMOGRAPHIC
+=====================
+- Name
+	Repeat names
+	Top 5 first and last names
+	Missing count and proportion
+- Sex
+	Male/female counts and proportions
+	Missing count and proportion
+- Race
+	Race counts and proportions
+	white/nonwhite counts and proportions
+	Missing count and proportion
+- Age at crime
+	Quartiles
+	Histogram
+	Group counts and proportions (<18; 18-25; 25-35; 35-45; 45-55; 55-65; 65+)
+
+//////////////////////////////
+- Age at conviction
+- Age at exoneration
+- Age at release
+//////////////////////////////
+	
+=====================
+CONVICTION
+=====================
+- State
+	Counts and proportions; ordered; bottom and top 10
+	States/territories counts and proportions
+- County
+	Counts and proportions; ordered; bottom and top 10
+	Federal/nonfederal counts and proportions
+	Missing count and proportion
+- Year of crime
+	Quartiles
+	Histogram
+	Decade counts and proportions
+	Missing count and proportion
+- (Worst) crime display
+	Histogram
+	Category and group counts and proportions (VIOLENT FELONY, MISDEMEANOR, NONVIOLENT FELONY, MISCONDUCT)
+	Missing count and proportion
+- Sentence
+	Count and proportions; ordered; bottom and top 10
+	Imprisonment/fine/probation counts and proportions
+	Missing count and proportion
+- Date of 1st conviction
+	Histogram (over time)
+	Missing count and proportion
+- Conviction tags
+
+//////////////////////////////
+- Year of 1st conviction
+//////////////////////////////
+
+
+=====================
+EXONERATION
+=====================
+- Date of exoneration
+	Missing count and proportion
+- Date of release
+	Missing count and proportion
+- Date of posting
+	Missing count and proportion
+- Exoneration tags
+	OF	
+	WH	
+	NW	
+	WT	Witness tampering?
+	INT	
+	PJ	Perjury?
+	PR	
+	KP	
+	PL	
+	FA	False accusation?
+	CW
+
+
+//////////////////////////////
+- Years served (between conviction and exoneration)
+- Year of exoneration
+- Year of release
+- Year of posting
+//////////////////////////////

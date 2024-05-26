@@ -1,0 +1,164 @@
+---
+title: "Univariate Exploratory Data Analysis"
+subtitle: "Exoneree Project"
+author: "Alejandro Hernandez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gridExtra)
+```
+
+```{r data-loading}
+rm(list = ls()) # clear workspace
+
+# load data
+exonerees <- read.csv("data/exonerees-may2024.csv")
+```
+
+# DEMOGRAPHIC
+
+### Name
+
+```{r name}
+
+```
+
+### Sex
+
+```{r sex}
+
+```
+
+### Race
+
+```{r race}
+
+```
+
+### Age at crime
+
+```{r age-at-crime}
+
+```
+
+## Derived demographic variables
+
+### Age at conviction
+
+```{r age-at-conviction}
+
+```
+
+### Age at exoneration
+
+```{r age-at-exoneration}
+
+```
+
+### Age at release
+
+```{r age-at-release}
+
+```
+
+# CONVICTION
+
+### State
+
+```{r state}
+
+```
+
+### County
+
+```{r county}
+
+```
+
+### Year of crime
+
+```{r year-of-crime}
+
+```
+
+### (Worst) crime
+
+```{r worst-crime}
+
+```
+
+### Sentence
+
+```{r sentence}
+
+```
+
+### Date of 1st conviction
+
+```{r date-conviction}
+
+```
+
+### Conviction tags
+
+## Derived conviction variables
+
+### Year of 1st conviction
+
+```{r year-conviction}
+
+```
+
+# EXONERATION
+
+### Date of exoneration
+
+```{r date-exoneration}
+
+```
+
+### Date of release
+
+```{r date-release}
+
+```
+
+### Date of posting
+
+```{r date-posting}
+
+```
+
+### Exoneration tags
+
+## Derived exoneration variables
+
+### Years served
+
+```{r years-served}
+
+```
+
+### Year of exoneration
+
+```{r year-exoneration}
+
+```
+
+### Year of release
+
+```{r year-release}
+
+```
+
+### Year of posting
+
+```{r year-posting}
+
+```
+
+**End of document**
