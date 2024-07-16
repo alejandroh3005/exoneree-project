@@ -27,7 +27,7 @@ First, we want to verify that, when interested in time spent wrongly imprisoned,
 
 Note that time is measured here in months.
 
-```{r}
+```{r, echo=FALSE}
 # check for negative values of Months Spent Incarcerated
 exonerees %>% 
   # select(Months.Incarcerated) %>%
