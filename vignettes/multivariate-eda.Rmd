@@ -10,6 +10,8 @@ subtitle: Exoneree Project
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1), 
+                                       collapse = "/"))
 library(tidyverse)
 library(gridExtra)
 ```
@@ -27,10 +29,6 @@ Profiles of Age
 exonerees %>% 
   ggplot(aes(x = Years.Incarcerated, y = ..density..)) + 
   geom_histogram(bins = 50)
-
-
-
-
 ```
 
 

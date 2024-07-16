@@ -1,0 +1,135 @@
+---
+title: "Covariate Verification: Crime"
+author: "Alejandro Hernandez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+subtitle: Exoneree Project
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1), 
+                                       collapse = "/"))
+library(tidyverse)
+# library(gridExtra)
+library(gtsummary)
+library(gt)
+```
+
+```{r data-loading}
+rm(list = ls()) # clear workspace
+# load data
+exonerees <- read.csv("data/exonerees1989-may2024.csv")
+
+# correct Crime Category to be a factor
+exonerees <- exonerees %>% mutate(Crime.Category = as.factor(Crime.Category))
+levels(exonerees$Crime.Category) <- c("Violent felony", "Misdemeanor",
+                                      "Nonviolent felony", "Misconduct")
+```
+# Distribution Tables
+
+Create a tables of distributions across types of offense.   
+
+```{r}
+# build summary tables
+gt_table1 <- exonerees %>% select(Crime.Category, 
+                                  Sex, 
+                                  Race, 
+                                  Age.Group.at.Conviction) %>%
+  gtsummary::tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_categorical() ~ "{n} ({p}%)")) %>%   # count (percentage) for factors
+  add_overall() %>%
+  bold_labels() %>%     # make the labels bold
+  modify_header(label ~ "**Variable**") %>%  # Customize the header
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+gt_table2 <- exonerees %>% select(Crime.Category, 
+                                  Age.at.Crime, 
+                                  Age.at.Conviction, 
+                                  Age.at.Release, 
+                                  Age.at.Exoneration) %>%
+  gtsummary::tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})")) %>% # mean (IQR) for continuous
+  add_overall() %>%
+  bold_labels() %>%     # make the labels bold
+  modify_header(label ~ "**Variable**") %>%  # Customize the header
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+
+gt_table3 <- exonerees %>% select(Crime.Category, 
+                                  Months.Incarcerated, 
+                                  Months.Convicted, 
+                                  Years.Incarcerated, 
+                                  Years.Convicted) %>%
+  gtsummary::tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})")) %>%
+  add_overall() %>%
+  bold_labels() %>%     # make the labels bold
+  modify_header(label ~ "**Variable**") %>%  # Customize the header
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+# save the gt table as a PNG file
+gt::gtsave(gt_table1, filename = "data/crime-categories.png", path = getwd())
+gtsave(gt_table2, filename = "data/crime-ages.png", path = getwd())
+gtsave(gt_table3, filename = "data/crime-time.png", path = getwd())
+```
+
+# Distribution Graphs
+
+First, we want to verify that, when interested in time spent wrongly imprisoned, the categories of Sex, Race, and Age are distinct groups. As we do so, we will describe how the distribution of time spent wrongly imprisoned for one group compares to its counterpart(s).
+
+Note that time is measured here in months.
+
+```{r, echo=FALSE}
+# check for negative values of Months Spent Incarcerated
+exonerees %>% 
+  # select(Months.Incarcerated) %>%
+  filter(Months.Incarcerated < 0)
+
+# Anthony Gayles (ID 1108) was marked as being convicted at age 49 and released 
+# at 48. We elect to ignore this individual from our analysis.
+exonerees <- exonerees %>% filter(ID != 1108)
+```
+
+
+```{r distribution-of-time-spent-imprisoned}
+gg_time_imprisoned <- exonerees %>%
+  filter(!is.na(Months.Incarcerated)) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Months.Incarcerated, x = ""), 
+              width = 0.4, color = "aliceblue") +
+
+  # marker at 1 year
+  geom_hline(yintercept = 12, color = "red") +
+  # time spent wrongfully imprisoned
+  geom_violin(aes(y = Months.Incarcerated, x = "")) +
+  geom_boxplot(aes(y = Months.Incarcerated, x = ""), alpha = 0.5) +
+  
+  # plot specifics
+  ylab("Months spent wrongfully imprisoned") + xlab("") +
+  scale_y_continuous(breaks = seq(0, 400, 120)) +
+  theme_bw()
+
+gg_time_imprisoned
+```
+
+
+```{r verify-covars}
+gg_time_imprisoned + facet_wrap(vars(Sex))
+gg_time_imprisoned + facet_wrap(vars(Race))
+gg_time_imprisoned + facet_wrap(vars(Age.Group.at.Conviction))
+```
+
+
+**End of document.**
