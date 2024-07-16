@@ -1,9 +1,11 @@
 ---
 title: "Multivariate Exploratory Data Analysis"
-subtitle: "Exoneree Project"
 author: "Alejandro Hernandez"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+subtitle: Exoneree Project
 ---
 
 ```{r setup, include=FALSE}
@@ -18,3 +20,167 @@ rm(list = ls()) # clear workspace
 # load data
 exonerees <- read.csv("data/exonerees-may2024.csv")
 ```
+
+Profiles of Age
+
+```{r time-incarcerated}
+exonerees %>% 
+  ggplot(aes(x = Years.Incarcerated, y = ..density..)) + 
+  geom_histogram(bins = 50)
+
+
+
+
+```
+
+
+```{r fig.width=8}
+gg_age <- exonerees %>%
+  filter(!is.na(Age.at.Crime)) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Age.at.Crime, x = "(1) Crime"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Conviction, x = "(2) Conviction"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Release, x = "(3) Release"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  # marker at 18 year
+  geom_hline(yintercept = 18, color = "red") +
+  # age at crime
+  geom_violin(aes(y = Age.at.Crime, x = "(1) Crime")) +
+  geom_boxplot(aes(y = Age.at.Crime, x = "(1) Crime"), alpha = 0.5) +
+  # age at conviction
+  geom_violin(aes(y = Age.at.Conviction, x = "(2) Conviction")) +
+  geom_boxplot(aes(y = Age.at.Conviction, x = "(2) Conviction"), alpha = 0.5) +
+  # age at release
+  geom_violin(aes(y = Age.at.Release, x = "(3) Release")) +
+  geom_boxplot(aes(y = Age.at.Release, x = "(3) Release"), alpha = 0.5) +
+  # age at exoneration
+  geom_violin(aes(y = Age.at.Exoneration, x = "(4) Exoneration")) +
+  geom_boxplot(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), alpha = 0.5) +
+  # plot specifics
+  ylab("Age at Event") + xlab("Event") +
+  scale_y_continuous(breaks = seq(0, 100, 20)) + 
+  theme_bw()
+
+gg_age
+gg_age + facet_wrap(vars(Sex))
+gg_age + facet_wrap(vars(Time.Incarcerated))
+```
+
+```{r}
+gg_age <- exonerees %>%
+  filter(!is.na(Age.at.Crime) & !is.na(Race)) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Age.at.Crime, x = "(1) Crime"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Conviction, x = "(2) Conviction"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Release, x = "(3) Release"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  # marker at 18 year
+  geom_hline(yintercept = 18, color = "red") +
+  # age at crime
+  geom_violin(aes(y = Age.at.Crime, x = "(1) Crime")) +
+  geom_boxplot(aes(y = Age.at.Crime, x = "(1) Crime"), alpha = 0.5) +
+  # age at conviction
+  geom_violin(aes(y = Age.at.Conviction, x = "(2) Conviction")) +
+  geom_boxplot(aes(y = Age.at.Conviction, x = "(2) Conviction"), alpha = 0.5) +
+  # age at release
+  geom_violin(aes(y = Age.at.Release, x = "(3) Release")) +
+  geom_boxplot(aes(y = Age.at.Release, x = "(3) Release"), alpha = 0.5) +
+  # age at exoneration
+  geom_violin(aes(y = Age.at.Exoneration, x = "(4) Exoneration")) +
+  geom_boxplot(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), alpha = 0.5) +
+  # plot specifics
+  ylab("Age at Event") + xlab("Event") +
+  scale_y_continuous(breaks = seq(0, 100, 20)) + 
+  theme_bw()
+
+gg_age + facet_wrap(vars(Race = ifelse(Race == "Black", "Black", "Non-Black")))
+gg_age + facet_wrap(vars(Race = ifelse(Race == "White", "White", "Non-white")))
+gg_age + facet_wrap(vars(Race = ifelse(Race == "Hispanic", "Hispanic", "Non-Hispanic")))
+# gg_age + facet_wrap(vars(Race = ifelse(Race == "Asian", "Asian", "Non-Asian")))
+# gg_age + facet_wrap(vars(Race = ifelse(Race == "Native American", "Native American", "Non-Native American")))
+# gg_age + facet_wrap(vars(Race = ifelse(Race == "Other", "Other", "Non-Other")))
+```
+
+```{r}
+gg_age <- exonerees %>%
+  filter(!is.na(Age.at.Crime) # & 
+           # Race %in% c("White", "Black", "Hispanic") &
+           # Crime.Category %in% c("Violent felony", "Misdemeanor")
+         ) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Age.at.Crime, x = "(1) Crime"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Conviction, x = "(2) Conviction"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Release, x = "(3) Release"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  # marker at 18 year
+  geom_hline(yintercept = 18, color = "red") +
+  # age at crime
+  geom_violin(aes(y = Age.at.Crime, x = "(1) Crime")) +
+  geom_boxplot(aes(y = Age.at.Crime, x = "(1) Crime"), alpha = 0.5) +
+  # age at conviction
+  geom_violin(aes(y = Age.at.Conviction, x = "(2) Conviction")) +
+  geom_boxplot(aes(y = Age.at.Conviction, x = "(2) Conviction"), alpha = 0.5) +
+  # age at release
+  geom_violin(aes(y = Age.at.Release, x = "(3) Release")) +
+  geom_boxplot(aes(y = Age.at.Release, x = "(3) Release"), alpha = 0.5) +
+  # age at exoneration
+  geom_violin(aes(y = Age.at.Exoneration, x = "(4) Exoneration")) +
+  geom_boxplot(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), alpha = 0.5) +
+  # plot specifics
+  ylab("Age at Event") + xlab("Event") +
+  scale_y_continuous(breaks = seq(0, 100, 20)) + 
+  theme_bw()
+
+gg_age + facet_wrap(vars(Crime.Category))
+```
+
+```{r}
+gg_age <- exonerees %>%
+  filter(!is.na(Age.at.Crime) & Race %in% c("Black", "White")) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Age.at.Crime, x = "(1) Crime"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Conviction, x = "(2) Conviction"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Release, x = "(3) Release"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  geom_jitter(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), 
+              width = 0.4, color = "aliceblue", alpha = 0.4) +
+  # marker at 18 year
+  geom_hline(yintercept = 18, color = "red") +
+  # age at crime
+  geom_violin(aes(y = Age.at.Crime, x = "(1) Crime")) +
+  geom_boxplot(aes(y = Age.at.Crime, x = "(1) Crime"), alpha = 0.5) +
+  # age at conviction
+  geom_violin(aes(y = Age.at.Conviction, x = "(2) Conviction")) +
+  geom_boxplot(aes(y = Age.at.Conviction, x = "(2) Conviction"), alpha = 0.5) +
+  # age at release
+  geom_violin(aes(y = Age.at.Release, x = "(3) Release")) +
+  geom_boxplot(aes(y = Age.at.Release, x = "(3) Release"), alpha = 0.5) +
+  # age at exoneration
+  geom_violin(aes(y = Age.at.Exoneration, x = "(4) Exoneration")) +
+  geom_boxplot(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), alpha = 0.5) +
+  # plot specifics
+  ylab("Age at Event") + xlab("Event") +
+  scale_y_continuous(breaks = seq(0, 100, 20)) + 
+  theme_bw()
+
+gg_age + facet_wrap(vars(Race))
+```
+

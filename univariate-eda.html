@@ -11,7 +11,7 @@
 
 <meta name="author" content="Alejandro Hernandez" />
 
-<meta name="date" content="2024-05-24" />
+<meta name="date" content="2024-05-27" />
 
 <title>Univariate Exploratory Data Analysis</title>
 
@@ -353,11 +353,15 @@ display: none;
 <h1 class="title toc-ignore">Univariate Exploratory Data Analysis</h1>
 <h3 class="subtitle">Exoneree Project</h3>
 <h4 class="author">Alejandro Hernandez</h4>
-<h4 class="date">2024-05-24</h4>
+<h4 class="date">2024-05-27</h4>
 
 </div>
 
 
+<pre class="r"><code>rm(list = ls()) # clear workspace
+
+# load data
+exonerees &lt;- read.csv(&quot;data/exonerees1989-may2024.csv&quot;)</code></pre>
 <div id="demographic" class="section level1">
 <h1>DEMOGRAPHIC</h1>
 <div id="name" class="section level3">
@@ -365,23 +369,684 @@ display: none;
 </div>
 <div id="sex" class="section level3">
 <h3>Sex</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Sex) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;%
+  knitr::kable(digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Sex</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Male</td>
+<td align="right">2390</td>
+<td align="right">0.903</td>
+</tr>
+<tr class="even">
+<td align="left">Female</td>
+<td align="right">258</td>
+<td align="right">0.097</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="race" class="section level3">
 <h3>Race</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Race) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;%
+  knitr::kable(digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Race</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="right">1416</td>
+<td align="right">0.53</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="right">785</td>
+<td align="right">0.30</td>
+</tr>
+<tr class="odd">
+<td align="left">Hispanic</td>
+<td align="right">373</td>
+<td align="right">0.14</td>
+</tr>
+<tr class="even">
+<td align="left">Asian</td>
+<td align="right">27</td>
+<td align="right">0.01</td>
+</tr>
+<tr class="odd">
+<td align="left">Native American</td>
+<td align="right">21</td>
+<td align="right">0.01</td>
+</tr>
+<tr class="even">
+<td align="left">Other</td>
+<td align="right">19</td>
+<td align="right">0.01</td>
+</tr>
+<tr class="odd">
+<td align="left">NA</td>
+<td align="right">7</td>
+<td align="right">0.00</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div id="age-at-crime" class="section level3">
-<h3>Age at crime</h3>
+<div id="ages-at-events" class="section level3">
+<h3>Ages at events</h3>
+<pre class="r"><code># exonerees %&gt;% 
+#   group_by(Age.at.Crime) %&gt;%
+#   summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+#   arrange(desc(Count)) %&gt;% filter(Count &gt;= 100) %&gt;%
+#   knitr::kable(col.names = c(&quot;Age at Crime&quot;, &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)</code></pre>
+<pre class="r"><code># age groups at crime
+exonerees %&gt;%
+  group_by(Age.Group.at.Crime) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;%
+  filter(!is.na(Age.Group.at.Crime)) %&gt;%
+  knitr::kable(col.names = c(&quot;Age at Crime&quot;, &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Age at Crime</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Young adult</td>
+<td align="right">1274</td>
+<td align="right">0.48</td>
+</tr>
+<tr class="even">
+<td align="left">Adult</td>
+<td align="right">546</td>
+<td align="right">0.21</td>
+</tr>
+<tr class="odd">
+<td align="left">Middle age</td>
+<td align="right">414</td>
+<td align="right">0.16</td>
+</tr>
+<tr class="even">
+<td align="left">Minor</td>
+<td align="right">386</td>
+<td align="right">0.15</td>
+</tr>
+<tr class="odd">
+<td align="left">Senior</td>
+<td align="right">7</td>
+<td align="right">0.00</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Age.Group.at.Crime, Age.Group.at.Release) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+  knitr::kable(col.names = c(&quot;Age at Crime&quot;, &quot;Age at release&quot;, 
+                             &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Age at Crime</th>
+<th align="left">Age at release</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">628</td>
+<td align="right">0.24</td>
+</tr>
+<tr class="even">
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">398</td>
+<td align="right">0.15</td>
+</tr>
+<tr class="odd">
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">394</td>
+<td align="right">0.15</td>
+</tr>
+<tr class="even">
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">272</td>
+<td align="right">0.10</td>
+</tr>
+<tr class="odd">
+<td align="left">Adult</td>
+<td align="left">Adult</td>
+<td align="right">269</td>
+<td align="right">0.10</td>
+</tr>
+<tr class="even">
+<td align="left">Young adult</td>
+<td align="left">Middle age</td>
+<td align="right">248</td>
+<td align="right">0.09</td>
+</tr>
+<tr class="odd">
+<td align="left">Minor</td>
+<td align="left">Young adult</td>
+<td align="right">153</td>
+<td align="right">0.06</td>
+</tr>
+<tr class="even">
+<td align="left">Minor</td>
+<td align="left">Adult</td>
+<td align="right">103</td>
+<td align="right">0.04</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Crime.Category, Age.Group.at.Crime, Age.Group.at.Release) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+  knitr::kable(col.names = c(&quot;Crime category&quot;, &quot;Age at Crime&quot;, &quot;Age at release&quot;, 
+                             &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Crime category</th>
+<th align="left">Age at Crime</th>
+<th align="left">Age at release</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">351</td>
+<td align="right">0.13</td>
+</tr>
+<tr class="even">
+<td align="left">Misdemeanor</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">332</td>
+<td align="right">0.13</td>
+</tr>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">271</td>
+<td align="right">0.10</td>
+</tr>
+<tr class="even">
+<td align="left">Violent felony</td>
+<td align="left">Young adult</td>
+<td align="left">Middle age</td>
+<td align="right">246</td>
+<td align="right">0.09</td>
+</tr>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">224</td>
+<td align="right">0.08</td>
+</tr>
+<tr class="even">
+<td align="left">Violent felony</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">196</td>
+<td align="right">0.07</td>
+</tr>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="left">Minor</td>
+<td align="left">Young adult</td>
+<td align="right">137</td>
+<td align="right">0.05</td>
+</tr>
+<tr class="even">
+<td align="left">Misdemeanor</td>
+<td align="left">Adult</td>
+<td align="left">Adult</td>
+<td align="right">128</td>
+<td align="right">0.05</td>
+</tr>
+<tr class="odd">
+<td align="left">Misdemeanor</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">124</td>
+<td align="right">0.05</td>
+</tr>
+<tr class="even">
+<td align="left">Violent felony</td>
+<td align="left">Adult</td>
+<td align="left">Adult</td>
+<td align="right">111</td>
+<td align="right">0.04</td>
+</tr>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="left">Minor</td>
+<td align="left">Adult</td>
+<td align="right">103</td>
+<td align="right">0.04</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>### 
+
+exonerees %&gt;% 
+  group_by(Race, Age.Group.at.Crime, Age.Group.at.Release) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.), 
+            Total.Yrs.Incarcerated = sum(Years.Incarcerated)) %&gt;%
+  arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+  knitr::kable(col.names = c(&quot;Race&quot;, &quot;Age at Crime&quot;, &quot;Age at release&quot;, 
+                             &quot;Count&quot;, &quot;Proportion&quot;, 
+                             &quot;Total years incarcerated&quot;), digits = 2)</code></pre>
+<table>
+<colgroup>
+<col width="11%" />
+<col width="16%" />
+<col width="18%" />
+<col width="7%" />
+<col width="13%" />
+<col width="31%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Race</th>
+<th align="left">Age at Crime</th>
+<th align="left">Age at release</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+<th align="right">Total years incarcerated</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">371</td>
+<td align="right">0.14</td>
+<td align="right">559</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">222</td>
+<td align="right">0.08</td>
+<td align="right">1943</td>
+</tr>
+<tr class="odd">
+<td align="left">White</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">195</td>
+<td align="right">0.07</td>
+<td align="right">578</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Middle age</td>
+<td align="right">155</td>
+<td align="right">0.06</td>
+<td align="right">3198</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">147</td>
+<td align="right">0.06</td>
+<td align="right">376</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Adult</td>
+<td align="left">Adult</td>
+<td align="right">141</td>
+<td align="right">0.05</td>
+<td align="right">138</td>
+</tr>
+<tr class="odd">
+<td align="left">White</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">139</td>
+<td align="right">0.05</td>
+<td align="right">171</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">126</td>
+<td align="right">0.05</td>
+<td align="right">929</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">114</td>
+<td align="right">0.04</td>
+<td align="right">1152</td>
+</tr>
+<tr class="even">
+<td align="left">Hispanic</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">102</td>
+<td align="right">0.04</td>
+<td align="right">160</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Minor</td>
+<td align="left">Young adult</td>
+<td align="right">101</td>
+<td align="right">0.04</td>
+<td align="right">512</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">99</td>
+<td align="right">0.04</td>
+<td align="right">721</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Race, Age.Group.at.Crime, Age.Group.at.Release) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.), 
+            Total.Yrs.Incarcerated = sum(Years.Incarcerated)) %&gt;%
+  arrange(desc(Total.Yrs.Incarcerated)) %&gt;% filter(Count &gt;= 95) %&gt;%
+  knitr::kable(col.names = c(&quot;Race&quot;, &quot;Age at Crime&quot;, &quot;Age at release&quot;, 
+                             &quot;Count&quot;, &quot;Proportion&quot;, 
+                             &quot;Total years incarcerated&quot;), digits = 2)</code></pre>
+<table>
+<colgroup>
+<col width="11%" />
+<col width="16%" />
+<col width="18%" />
+<col width="7%" />
+<col width="13%" />
+<col width="31%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Race</th>
+<th align="left">Age at Crime</th>
+<th align="left">Age at release</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+<th align="right">Total years incarcerated</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Middle age</td>
+<td align="right">155</td>
+<td align="right">0.06</td>
+<td align="right">3198</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">222</td>
+<td align="right">0.08</td>
+<td align="right">1943</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">114</td>
+<td align="right">0.04</td>
+<td align="right">1152</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Adult</td>
+<td align="left">Middle age</td>
+<td align="right">126</td>
+<td align="right">0.05</td>
+<td align="right">929</td>
+</tr>
+<tr class="odd">
+<td align="left">White</td>
+<td align="left">Young adult</td>
+<td align="left">Adult</td>
+<td align="right">99</td>
+<td align="right">0.04</td>
+<td align="right">721</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">195</td>
+<td align="right">0.07</td>
+<td align="right">578</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">371</td>
+<td align="right">0.14</td>
+<td align="right">559</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Minor</td>
+<td align="left">Young adult</td>
+<td align="right">101</td>
+<td align="right">0.04</td>
+<td align="right">512</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Middle age</td>
+<td align="left">Middle age</td>
+<td align="right">147</td>
+<td align="right">0.06</td>
+<td align="right">376</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">139</td>
+<td align="right">0.05</td>
+<td align="right">171</td>
+</tr>
+<tr class="odd">
+<td align="left">Hispanic</td>
+<td align="left">Young adult</td>
+<td align="left">Young adult</td>
+<td align="right">102</td>
+<td align="right">0.04</td>
+<td align="right">160</td>
+</tr>
+<tr class="even">
+<td align="left">Black</td>
+<td align="left">Adult</td>
+<td align="left">Adult</td>
+<td align="right">141</td>
+<td align="right">0.05</td>
+<td align="right">138</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># age at crime (by race)
+# 
+# exonerees %&gt;% 
+#   group_by(Age.Group) %&gt;%
+#   summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+#   # arrange(desc(Count)) %&gt;% filter(Count &gt;= 100) %&gt;%
+#   knitr::kable(col.names = c(&quot;Age at Crime&quot;, &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)
+# 
+# 
+# exonerees %&gt;% 
+#   mutate(Age.Group = cut(Age.at.Crime, breaks = age_groups, 
+#                          labels = age_labels, include.lowest = TRUE)) %&gt;%
+#   group_by(Race, Age.Group) %&gt;%
+#   summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+#   arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+#   knitr::kable(col.names = c(&quot;Race&quot;, &quot;Age at Crime&quot;, &quot;Count&quot;, &quot;Proportion&quot;), 
+#                digits = 2)
+
+# # age at release (by race)
+# 
+# exonerees %&gt;% 
+#   mutate(Age.Group = cut(Age.at.Release, breaks = age_groups, 
+#                          labels = age_labels, include.lowest = TRUE)) %&gt;%
+#   group_by(Age.Group) %&gt;%
+#   summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+#   # arrange(desc(Count)) %&gt;% filter(Count &gt;= 100) %&gt;%
+#   knitr::kable(col.names = c(&quot;Age at Release&quot;, &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)
+# 
+# 
+# exonerees %&gt;% 
+#   mutate(Age.Group = cut(Age.at.Release, breaks = age_groups, 
+#                          labels = age_labels, include.lowest = TRUE)) %&gt;%
+#   group_by(Race, Age.Group) %&gt;%
+#   summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+#   arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+#   knitr::kable(col.names = c(&quot;Race&quot;, &quot;Age at Release&quot;, &quot;Count&quot;, &quot;Proportion&quot;), 
+#                digits = 2)
+
+
+exonerees %&gt;% 
+  group_by(Race, Sex, Crime.Category) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;% filter(Count &gt;= 95) %&gt;%
+  knitr::kable(col.names = c(&quot;Race&quot;, &quot;Sex&quot;, &quot;Crime category&quot;, 
+                             &quot;Count&quot;, &quot;Proportion&quot;), 
+               digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Race</th>
+<th align="left">Sex</th>
+<th align="left">Crime category</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Male</td>
+<td align="left">Violent felony</td>
+<td align="right">853</td>
+<td align="right">0.32</td>
+</tr>
+<tr class="even">
+<td align="left">White</td>
+<td align="left">Male</td>
+<td align="left">Violent felony</td>
+<td align="right">496</td>
+<td align="right">0.19</td>
+</tr>
+<tr class="odd">
+<td align="left">Black</td>
+<td align="left">Male</td>
+<td align="left">Misdemeanor</td>
+<td align="right">443</td>
+<td align="right">0.17</td>
+</tr>
+<tr class="even">
+<td align="left">Hispanic</td>
+<td align="left">Male</td>
+<td align="left">Violent felony</td>
+<td align="right">233</td>
+<td align="right">0.09</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="derived-demographic-variables" class="section level2">
 <h2>Derived demographic variables</h2>
 <div id="age-at-conviction" class="section level3">
 <h3>Age at conviction</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  select(Age.at.Conviction) %&gt;%
+  summary(digits = 2)</code></pre>
+<pre><code>##  Age.at.Conviction
+##  Min.   :11       
+##  1st Qu.:22       
+##  Median :28       
+##  Mean   :31       
+##  3rd Qu.:37       
+##  Max.   :84       
+##  NA&#39;s   :21</code></pre>
 </div>
 <div id="age-at-exoneration" class="section level3">
 <h3>Age at exoneration</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  select(Age.at.Exoneration) %&gt;%
+  summary(digits = 2)</code></pre>
+<pre><code>##  Age.at.Exoneration
+##  Min.   :13        
+##  1st Qu.:31        
+##  Median :39        
+##  Mean   :40        
+##  3rd Qu.:47        
+##  Max.   :84        
+##  NA&#39;s   :21</code></pre>
 </div>
 <div id="age-at-release" class="section level3">
 <h3>Age at release</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  select(Age.at.Release) %&gt;%
+  summary(digits = 2)</code></pre>
+<pre><code>##  Age.at.Release
+##  Min.   :13    
+##  1st Qu.:28    
+##  Median :36    
+##  Mean   :37    
+##  3rd Qu.:45    
+##  Max.   :84    
+##  NA&#39;s   :21</code></pre>
 </div>
 </div>
 </div>
@@ -398,6 +1063,42 @@ display: none;
 </div>
 <div id="worst-crime" class="section level3">
 <h3>(Worst) crime</h3>
+<pre class="r"><code>exonerees %&gt;% 
+  group_by(Crime.Category) %&gt;%
+  summarize(Count = n(), Proportion = Count / nrow(.)) %&gt;%
+  arrange(desc(Count)) %&gt;% # filter(Count &gt;= 100) %&gt;%
+  knitr::kable(col.names = c(&quot;Crime Category&quot;, &quot;Count&quot;, &quot;Proportion&quot;), digits = 2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Crime Category</th>
+<th align="right">Count</th>
+<th align="right">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Violent felony</td>
+<td align="right">1751</td>
+<td align="right">0.66</td>
+</tr>
+<tr class="even">
+<td align="left">Misdemeanor</td>
+<td align="right">736</td>
+<td align="right">0.28</td>
+</tr>
+<tr class="odd">
+<td align="left">Nonviolent felony</td>
+<td align="right">148</td>
+<td align="right">0.06</td>
+</tr>
+<tr class="even">
+<td align="left">Misconduct</td>
+<td align="right">13</td>
+<td align="right">0.00</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="sentence" class="section level3">
 <h3>Sentence</h3>

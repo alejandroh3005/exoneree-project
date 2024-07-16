@@ -1,0 +1,72 @@
+---
+title: "Covariate Verification"
+author: "Alejandro Hernandez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+subtitle: Exoneree Project
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+# library(gridExtra)
+# library(gtsummary)
+# library(gt)
+```
+
+```{r data-loading}
+rm(list = ls()) # clear workspace
+
+# load data
+exonerees <- read.csv("data/exonerees1989-may2024.csv")
+```
+
+First, we want to verify that, when interested in time spent wrongly imprisoned, the categories of Sex, Race, and Age are distinct groups. As we do so, we will describe how the distribution of time spent wrongly imprisoned for one group compares to its counterpart(s).
+
+Note that time is measured here in months.
+
+```{r}
+# check for negative values of Months Spent Incarcerated
+exonerees %>% 
+  # select(Months.Incarcerated) %>%
+  filter(Months.Incarcerated < 0)
+
+# Anthony Gayles (ID 1108) was marked as being convicted at age 49 and released 
+# at 48. We elect to ignore this individual from our analysis.
+exonerees <- exonerees %>% filter(ID != 1108)
+```
+
+
+```{r distribution-of-time-spent-imprisoned}
+gg_time_imprisoned <- exonerees %>%
+  filter(!is.na(Months.Incarcerated)) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Months.Incarcerated, x = ""), 
+              width = 0.4, color = "aliceblue") +
+
+  # marker at 1 year
+  geom_hline(yintercept = 12, color = "red") +
+  # time spent wrongfully imprisoned
+  geom_violin(aes(y = Months.Incarcerated, x = "")) +
+  geom_boxplot(aes(y = Months.Incarcerated, x = ""), alpha = 0.5) +
+  
+  # plot specifics
+  ylab("Months spent wrongfully imprisoned") + xlab("") +
+  scale_y_continuous(breaks = seq(0, 400, 120)) +
+  theme_bw()
+
+gg_time_imprisoned
+```
+
+
+```{r verify-covars}
+gg_time_imprisoned + facet_wrap(vars(Sex))
+gg_time_imprisoned + facet_wrap(vars(Race))
+gg_time_imprisoned + facet_wrap(vars(Age.Group.at.Conviction))
+```
+
+
+**End of document.**
