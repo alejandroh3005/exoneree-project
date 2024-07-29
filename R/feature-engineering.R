@@ -1,7 +1,7 @@
 #' Title: "Feature engineering script"
 #' Project: "Exoneree Project"
 #' Author: "Alejandro Hernandez"
-#' Date: "May 26, 2024"
+#' Date of last edit: "July 29, 2024"
 
 rm(list = ls()) # clear workspace
 library(dplyr)
@@ -57,7 +57,7 @@ exonerees <- exonerees %>%
       ifelse(Worst.Crime.Display %in% misconduct, "Misconduct",
              "Other")))))
 
-# Make a table of each offense and the corresponding crime category it falls into
+# make a table of each offense and the corresponding crime category it falls into
 
 all_offenses <- c(violent_felonies, misdemeanors, nonviolent_felonies, misconduct)
 
@@ -66,7 +66,7 @@ list_names <- c(rep("Violent Felony", length(violent_felonies)),
                 rep("Nonviolent Felony", length(nonviolent_felonies)),
                 rep("Misconduct", length(misconduct)))
 
-# Create the data frame
+# create the data frame
 crime_table <- data.frame(Category = list_names, 
                           Offense = all_offenses,
                           stringsAsFactors = FALSE)
@@ -78,11 +78,11 @@ crime_table <- data.frame(Category = list_names,
 
 tags_conviction <- exonerees %>%
   select(ID, Tags) %>%
-  # Split TAGS into individual words and create a long-format data frame
+  # split TAGS into individual words and create a long-format data frame
   tidyr::separate_rows(Tags, sep = ";#") %>%
-  # Add a column with value 1 for each tag
+  # add a column with value 1 for each tag
   mutate(value = 1) %>%
-  # Spread the tags into separate columns
+  # spread the tags into separate columns
   tidyr::pivot_wider(names_from = Tags, values_from = value,
                      values_fill = list(value = 0))
 
@@ -97,11 +97,11 @@ exonerees <- cbind(exonerees, tags_conviction %>% select(-ID))
 
 tags_exoneration <- exonerees %>%
   select(ID, OM.Tags) %>%
-  # Split TAGS into individual words and create a long-format dataframe
+  # split TAGS into individual words and create a long-format data frame
   separate_rows(OM.Tags, sep = ";#") %>%
-  # Add a column with value 1 for each tag
+  # add a column with value 1 for each tag
   mutate(value = 1) %>%
-  # Spread the tags into separate columns
+  # spread the tags into separate columns
   pivot_wider(names_from = OM.Tags, values_from = value, 
               values_fill = list(value = 0))
 
@@ -178,8 +178,8 @@ exonerees <- exonerees %>%
     Age.at.Exoneration = Age.at.Conviction + Years.Convicted,
     )
 
-age_groups = c(0, 18, 30, 40, 65, 100)
-age_labels = c("Minor", "Young adult", "Adult", "Middle age", "Senior")
+age_groups = c(0, 18, 30, 40, 50, 65, 100)
+age_labels = c("0 - 17", "18 - 29", "30 - 39", "40 - 49", "50 - 64", "65 - 100")
 
 exonerees <- exonerees %>% 
   mutate(
@@ -197,12 +197,23 @@ exonerees <- exonerees %>%
 ### Validate new variables
 ### ============================= ###
 
-# verify age at crime is never less than age at conviction (and therefore less
-# than age at subsequent events) 
-exonerees %>%
-  select(Age.at.Crime, Age.at.Conviction) %>%
-  filter(Age.at.Crime > Age.at.Conviction) %>% 
-  nrow(.) == 0
+# verify no one's age at conviction is younger than their age at alleged crime
+exonerees %>% filter(Age.at.Crime > Age.at.Conviction) %>% nrow(.) == 0
+
+# verify that all times spent incarcerated/convicted are positive or zero
+exonerees %>% filter(Months.Convicted < 0) %>% nrow(.) == 0
+exonerees %>% filter(Months.Incarcerated < 0) %>% nrow(.) == 0
+
+# Here, we find that Anthony Gayles (year of crime: 2004) was recorded as being 
+# released in 2003, marking his time spent incarcerated as -11 months. We elect
+# to remove him from our analysis
+exonerees %>% 
+  select(ID, First.Name, Last.Name, Year.of.1st.Conviction, Year.of.Release,
+         Months.Incarcerated) %>%
+  filter(Months.Incarcerated < 0)
+
+exonerees <- exonerees %>% filter(Months.Incarcerated >= 0)
+
 
 
 ### ================ ###
@@ -235,7 +246,7 @@ exonerees <- exonerees %>% select(
   # crime details
   State, County, Worst.Crime.Display, Crime.Category, Sentence,
   # conviction and exoneration tags
-  existing_extags, new_contags,
+  existing_extags, all_of(new_contags),
   # time served
   Time.Incarcerated, Months.Incarcerated, Months.Convicted, Years.Incarcerated, Years.Convicted,
   # year of events

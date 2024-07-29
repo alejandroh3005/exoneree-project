@@ -10,17 +10,55 @@ subtitle: Exoneree Project
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1), 
+                                       collapse = "/"))
 library(tidyverse)
-library(gridExtra)
-library(gtsummary)
-library(gt)
+# library(gridExtra)
+# library(gtsummary)
+# library(gt)
 ```
 
 ```{r data-loading}
 rm(list = ls()) # clear workspace
-
 # load data
 exonerees <- read.csv("data/exonerees1989-may2024.csv")
+
+# correct Crime Category to be a factor
+exonerees$Crime.Category <- as.factor(exonerees$Crime.Category)
+levels(exonerees$Crime.Category) <- c("Violent felony", "Misdemeanor",
+                                      "Nonviolent felony", "Misconduct")
+
+# correct Age Group variables to be factors
+exonerees <- exonerees %>%
+  mutate_at(vars(Age.Group.at.Crime, Age.Group.at.Conviction, 
+                 Age.Group.at.Release, Age.Group.at.Exoneration), 
+            as.factor)
+age_levels <- c("Adult", "Middle age", "Minor", "Senior", "Young adult")
+levels(exonerees$Age.Group.at.Crime) <- age_levels
+levels(exonerees$Age.Group.at.Conviction) <- age_levels
+levels(exonerees$Age.Group.at.Release) <- age_levels
+levels(exonerees$Age.Group.at.Exoneration) <- age_levels
+
+# correct Race to be a factor
+exonerees$Race <- as.factor(exonerees$Race)
+levels(exonerees$Race) <- c("Black", "White", "Hispanic", "Native American", 
+                            "Asian", "Other")
+
+# correct binary tags to also be factors
+tag_vars <- c("F.MFE","FC","ILD","P.FA","DNA","MWID","OM","CV","IO","SA","CIU",
+              "NC","P","H","JV","CDC","F","JI","M","CSH","SBS","A","FED","PH",
+              "BM")
+exonerees <- exonerees %>% mutate_at(tag_vars, as.factor)
+
+# find negative values of Months Spent Incarcerated
+exonerees %>% 
+  select(ID, First.Name, Last.Name, Year.of.1st.Conviction, Year.of.Release,
+         Months.Incarcerated) %>%
+  filter(Months.Incarcerated < 0)
+
+# Anthony Gayles (ID 1108) was marked as being convicted at age 49 and released 
+# at 48. We elect to ignore this individual from our analysis.
+exonerees <- exonerees %>% filter(ID != 1108)
 ```
 
 
@@ -51,7 +89,7 @@ gt_table1 <- exonerees_tab1 %>%
   as_gt()
 
 # Save the gt table as a PNG file
-gt::gtsave(gt_table1, filename = "table1.png", 
+gt::gtsave(gt_table1, filename = "images/table1.png", 
            path = getwd())
 ```
 
