@@ -1,0 +1,467 @@
+---
+title: "Race and Crime Playground"
+author: "Alejandro Hernandez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+subtitle: Exoneree Project
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1),
+                                      collapse = "/"))
+library(tidyverse)
+# library(gridExtra)
+library(gtsummary)
+library(gt)
+library(knitr)
+```
+
+```{r data-loading, echo=FALSE}
+rm(list = ls()) # clear workspace
+# load data
+exonerees <- read.csv("data/exonerees1989-may2024.csv")
+
+
+# correct Crime Category to be a factor
+crime_levels <- c("Violent felony", "Misdemeanor", "Nonviolent felony", 
+                  "Misconduct")
+exonerees$Crime.Category <- factor(exonerees$Crime.Category, 
+                                   levels = crime_levels)
+
+# correct Age Group variables to be factors
+age_levels = c("0 - 17", "18 - 29", "30 - 39", "40 - 49", "50 - 64", "65 - 100")
+exonerees$Age.Group.at.Crime <- factor(exonerees$Age.Group.at.Crime, 
+                                       levels = age_levels)
+exonerees$Age.Group.at.Conviction <- factor(exonerees$Age.Group.at.Conviction, 
+                                            levels = age_levels)
+exonerees$Age.Group.at.Release <- factor(exonerees$Age.Group.at.Release, 
+                                         levels = age_levels)
+exonerees$Age.Group.at.Exoneration <- factor(exonerees$Age.Group.at.Exoneration,
+                                             levels = age_levels)
+
+# correct Race to be a factor
+race_levels <- c("Black", "White", "Hispanic", "Asian", "Native American",
+                 "Other")
+exonerees$Race <- factor(exonerees$Race, levels = race_levels)
+
+# correct Sex to be a factor
+exonerees$Sex <- as.factor(exonerees$Sex)
+
+# correct binary tags to also be factors
+tag_vars <- c("F.MFE","FC","ILD","P.FA","DNA","MWID","OM","CV","IO","SA","CIU",
+              "NC","P","H","JV","CDC","F","JI","M","CSH","SBS","A","FED","PH",
+              "BM")
+exonerees <- exonerees %>% mutate_at(tag_vars, as.factor)
+```
+
+```{r include=FALSE}
+# make sure everything looks good
+summary(exonerees)
+dim(exonerees)
+```
+
+
+# Distribution Tables
+
+Create a tables of distributions across types of offense.
+
+```{r echo=FALSE}
+# build summary tables
+# 
+gt_table1 <- exonerees %>% select(Crime.Category, 
+                                  Sex, 
+                                  Race, 
+                                  Age.Group.at.Conviction) %>%
+  gtsummary::tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_categorical() ~ "{n} ({p}%)")) %>%   # count (percentage) for factors
+  add_overall() %>%
+  bold_labels() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+gt_table2 <- exonerees %>% select(Crime.Category, 
+                                  Age.at.Crime, 
+                                  Age.at.Conviction, 
+                                  Age.at.Release, 
+                                  Age.at.Exoneration) %>%
+  tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})")) %>% # mean (IQR) for continuous
+  add_overall() %>%
+  bold_labels() %>%     # make the labels bold
+  modify_header(label ~ "**Variable**") %>%  # Customize the header
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+
+gt_table3 <- exonerees %>% select(Crime.Category, 
+                                  Months.Incarcerated, 
+                                  Months.Convicted, 
+                                  Years.Incarcerated, 
+                                  Years.Convicted) %>%
+  gtsummary::tbl_summary(
+    by = Crime.Category,
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})")) %>%
+  add_overall() %>%
+  bold_labels() %>%     # make the labels bold
+  modify_header(label ~ "**Variable**") %>%  # Customize the header
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Crime Category**") %>%
+  as_gt()
+
+# save the gt table as a PNG file
+gt::gtsave(gt_table1, filename = "images/crime-categories.png", path = getwd())
+gtsave(gt_table2, filename = "images/crime-ages.png", path = getwd())
+gtsave(gt_table3, filename = "images/crime-time.png", path = getwd())
+```
+
+# Distribution Graphs
+
+First, we want to verify that, when interested in time spent wrongly imprisoned, the categories of Sex, Race, and Age are distinct groups. As we do so, we will describe how the distribution of time spent wrongly imprisoned for one group compares to its counterpart(s).
+
+Note that time is measured here in months.
+
+```{r distribution-of-time-spent-imprisoned, echo=FALSE}
+gg_time_imprisoned <- exonerees %>%
+  filter(!is.na(Months.Incarcerated)) %>%
+  ggplot() +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(aes(y = Months.Incarcerated, x = ""), 
+              width = 0.4, color = "aliceblue") +
+
+  # marker at 1 year
+  geom_hline(yintercept = 12, color = "red") +
+  # time spent wrongfully imprisoned
+  geom_violin(aes(y = Months.Incarcerated, x = "")) +
+  geom_boxplot(aes(y = Months.Incarcerated, x = ""), alpha = 0.5) +
+  
+  # plot specifics
+  ylab("Months spent wrongfully imprisoned") + xlab("") +
+  scale_y_continuous(breaks = seq(0, 400, 120)) +
+  theme_bw()
+
+gg_time_imprisoned
+```
+
+```{r verify-covars, echo=FALSE}
+gg_time_imprisoned + facet_wrap(vars(Sex))
+gg_time_imprisoned + facet_wrap(vars(Race))
+gg_time_imprisoned + facet_wrap(vars(Age.Group.at.Conviction))
+```
+
+# Race, adjusting for Crime
+
+## Sample size table
+
+```{r sample-sizes, echo=FALSE}
+# race overall
+exonerees %>%
+  group_by(Race) %>%
+  summarise(n = n())
+
+# crime overall
+exonerees %>%
+  group_by(Worst.Crime.Display) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+
+# crime, by race
+gt_table4 <- exonerees %>% 
+  select(Race, Offense = Worst.Crime.Display) %>%
+  tbl_summary(
+    by = Race,
+    statistic = list(
+      all_categorical() ~ "{n} ({p}%)")) %>%   # count (percentage)
+  add_overall() %>%
+  bold_labels() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_spanning_header(c(stat_1, stat_2) ~ "**Race**")
+
+gt_table4_ordered <- gt_table4 %>%
+  as.data.frame() %>%
+  mutate(overall.count = parse_number(`**Overall**, N = 2,640`)) %>%
+  arrange(desc(overall.count)) %>%
+  select(-overall.count) %>% 
+  head(-1) %>%    # drop the __offense__ row, which I haven't cleanly avoided
+  gt()
+
+gt_table4 <- gt_table4 %>% as_gt()
+
+gtsave(gt_table4, filename = "images/sample-sizes.png", path = getwd())
+gtsave(gt_table4_ordered, filename = "images/sample-sizes-ordered.png", path = getwd())
+
+gt_table4_ordered
+
+```
+
+## Time served table
+
+```{r years-served-table, echo=FALSE}
+# overall
+exonerees %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  knitr::kable(caption = "Years spent incarcerated and convicted by all exonerees")
+
+## in (descending) order of group size:
+# Black
+exonerees %>% filter(Race == "Black") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by Black exonerees")
+
+# white
+exonerees %>% 
+  filter(Race == "White") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by white exonerees")
+
+# Hispanic
+exonerees %>% filter(Race == "Hispanic") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by Hispanic exonerees")
+
+# Asian
+exonerees %>% filter(Race == "Asian") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by Asian exonerees")
+
+# Native American
+exonerees %>% filter(Race == "Native American") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by Native American exonerees")
+
+# Other
+exonerees %>% filter(Race == "Other") %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by exonerees who are 
+        not Black, white, Hispanic, Asian, or Native American")
+
+# NA
+exonerees %>% filter(is.na(Race)) %>%
+  group_by(Offense = Worst.Crime.Display) %>%
+  summarise(Incarcerated = sum(Years.Incarcerated),
+            Convicted = sum(Years.Convicted)) %>%
+  arrange(desc(Incarcerated)) %>%
+  kable(caption = "Years spent incarcerated and convicted by exonerees of unknown
+        race")
+```
+
+## Age distributions
+
+```{r}
+plot_ages <- function (data) {
+  gg <- data %>%
+    filter(!is.na(Age.at.Crime)) %>%
+    ggplot() +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(aes(y = Age.at.Crime, x = "(1) Crime"), 
+                width = 0.4, color = "aliceblue", alpha = 0.4) +
+    geom_jitter(aes(y = Age.at.Conviction, x = "(2) Conviction"), 
+                width = 0.4, color = "aliceblue", alpha = 0.4) +
+    geom_jitter(aes(y = Age.at.Release, x = "(3) Release"), 
+                width = 0.4, color = "aliceblue", alpha = 0.4) +
+    geom_jitter(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), 
+                width = 0.4, color = "aliceblue", alpha = 0.4) +
+    # marker at 18 year
+    geom_hline(yintercept = 18, color = "red") +
+    # age at crime
+    geom_violin(aes(y = Age.at.Crime, x = "(1) Crime")) +
+    geom_boxplot(aes(y = Age.at.Crime, x = "(1) Crime"), alpha = 0.5) +
+    # age at conviction
+    geom_violin(aes(y = Age.at.Conviction, x = "(2) Conviction")) +
+    geom_boxplot(aes(y = Age.at.Conviction, x = "(2) Conviction"), alpha = 0.5) +
+    # age at release
+    geom_violin(aes(y = Age.at.Release, x = "(3) Release")) +
+    geom_boxplot(aes(y = Age.at.Release, x = "(3) Release"), alpha = 0.5) +
+    # age at exoneration
+    geom_violin(aes(y = Age.at.Exoneration, x = "(4) Exoneration")) +
+    geom_boxplot(aes(y = Age.at.Exoneration, x = "(4) Exoneration"), alpha = 0.5)+
+    # plot specifics
+    ylab("Age at Event") + xlab("Event") +
+    scale_y_continuous(breaks = seq(0, 100, 20)) + 
+    theme_bw()
+  return(gg)
+}
+
+# overall
+plot_ages(exonerees)
+
+# subset of largest race groups
+exonerees %>% 
+  filter(Race %in% c("Black", "White", "Hispanic")) %>%
+  plot_ages() + facet_wrap(vars(Race))
+
+## crime, by sample size
+# Murder
+exonerees %>%
+  filter(Worst.Crime.Display == "Murder",
+         Race %in% c("Black", "White", "Hispanic")) %>%
+  plot_ages() + facet_wrap(vars(Race))
+
+# Drug possession or sale
+exonerees %>%
+  filter(Worst.Crime.Display == "Drug Possession or Sale",
+         Race %in% c("Black", "White", "Hispanic")) %>%
+  plot_ages() + facet_wrap(vars(Race))
+
+# Child sex abuse
+exonerees %>%
+  filter(Worst.Crime.Display == "Child Sex Abuse",
+         Race %in% c("Black", "White", "Hispanic")) %>%  
+  plot_ages() + facet_wrap(vars(Race))
+
+# All but Murder
+exonerees %>%
+  filter(Worst.Crime.Display != "Murder",
+         Race %in% c("Black", "White", "Hispanic")) %>%
+  plot_ages() + facet_wrap(vars(Race))
+```
+
+## Longitudinal plots
+
+```{r echo=FALSE}
+
+```
+
+## Distributions of time spent convicted and incarcerated
+
+```{r echo=FALSE}
+# overall
+exonerees %>% 
+  filter(!is.na(Months.Incarcerated)) %>%
+  ggplot(aes(y = Months.Incarcerated, x = Race)) +
+  # jitter points (these must be overlayed by the horizontal line)
+  geom_jitter(width = 0.4, color = "aliceblue") +
+  
+  # marker at 1 year
+  geom_hline(yintercept = 12, color = "red") +
+  # time spent wrongfully imprisoned
+  geom_violin() +
+  geom_boxplot(alpha = 0.5) +
+  
+  # plot specifics
+  ylab("Months spent wrongfully imprisoned") + xlab("") +
+  scale_y_continuous(breaks = seq(0, 400, 120)) +
+  theme_bw() +
+  labs(
+    title = "Time spent incarcerated by exonerees",
+    subtitle = paste0(
+    "Black: ", nrow(exonerees %>% filter(Race == "Black")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "Black")) / 
+                  nrow(exonerees)), "%); ",
+    "White: ", nrow(exonerees %>% filter(Race == "White")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "White")) / 
+                  nrow(exonerees)), "%); ",
+    "Hispanic: ", nrow(exonerees %>% filter(Race == "Hispanic")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "Hispanic")) / 
+                  nrow(exonerees)), "%); ",
+    "\n",
+    "Asian: ", nrow(exonerees %>% filter(Race == "Asian")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "Asian")) / 
+                  nrow(exonerees)), "%); ",
+    "Native American: ", nrow(exonerees %>% filter(Race == "Native American")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "Native American")) / 
+                  nrow(exonerees)), "%); ",
+    "Other: ", nrow(exonerees %>% filter(Race == "Other")), 
+    " (", floor(100*nrow(exonerees %>% filter(Race == "Other")) / 
+                  nrow(exonerees)), "%); ",
+    "NA: ", nrow(exonerees %>% filter(is.na(Race))), 
+    " (", floor(100*nrow(exonerees %>% filter(is.na(Race))) / 
+                  nrow(exonerees)), "%)"))
+
+
+
+## crime, by total time spent incarcerated
+plot_times <- function (data, crime_filter) {
+  
+  # filter data
+  data <- data %>% 
+    filter(!is.na(Months.Incarcerated),
+           Worst.Crime.Display == crime_filter,
+           Race %in% c("Black", "White", "Hispanic"))
+  
+  # plot distribution of time spent incarcerated
+  gg <- data %>%
+    ggplot(aes(y = Months.Incarcerated, x = Race)) +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(width = 0.4, color = "aliceblue") +
+
+    # marker at 1 year
+    geom_hline(yintercept = 12, color = "red") +
+    # time spent wrongfully imprisoned
+    geom_violin() +
+    geom_boxplot(alpha = 0.5) +
+    
+    # plot specifics
+    ylab("Months spent wrongfully imprisoned") + xlab("") +
+    scale_y_continuous(breaks = seq(0, 400, 120)) +
+    theme_bw() +
+    labs(
+    title = paste("Time spent incarcerated by exonerees of", crime_filter,
+                  "convictions"),
+    subtitle = paste0(
+    "Black: ", nrow(data %>% filter(Race == "Black")), 
+    " (", floor(100*nrow(data %>% filter(Race == "Black")) / 
+                  nrow(data)), "%); ",
+    "White: ", nrow(data %>% filter(Race == "White")), 
+    " (", floor(100*nrow(data %>% filter(Race == "White")) / 
+                  nrow(data)), "%); ",
+    "Hispanic: ", nrow(data %>% filter(Race == "Hispanic")), 
+    " (", floor(100*nrow(data %>% filter(Race == "Hispanic")) / 
+                  nrow(data)), "%)"))
+  
+  return(gg)
+}
+
+# Murder
+plot_times(exonerees, crime_filter = "Murder")
+
+# Child sex abuse
+plot_times(exonerees, crime_filter = "Child Sex Abuse")
+
+# Sexual assault
+plot_times(exonerees, crime_filter = "Sexual Assault")
+
+# Robbery
+plot_times(exonerees, crime_filter = "Robbery")
+
+# Attempted murder
+plot_times(exonerees, crime_filter = "Attempted Murder")
+
+# Drug possession or sale
+plot_times(exonerees, crime_filter = "Drug Possession or Sale")
+
+# Assault
+plot_times(exonerees, crime_filter = "Assault")
+
+# Manslaughter
+plot_times(exonerees, crime_filter = "Manslaughter")
+```
+
+**End of document.**
