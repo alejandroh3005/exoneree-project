@@ -8,11 +8,17 @@ subtitle: Analysis of the U.S. National Registry of Exonerations
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+### -----------------------------------------------------------
+### Setup
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1),
                                       collapse = "/"))
+options(knitr.kable.NA = '-')
+labs = knitr::all_labels()
+labs = labs[!labs %in% c("setup", "llm_appendix", "allcode")]
+
 library(tidyverse)
-# library(gridExtra)
+library(gridExtra)
 library(gtsummary)
 library(gt)
 library(knitr)
@@ -28,7 +34,9 @@ The National Registry of Exonerations is a project from the University of Califo
 
 In this study, we examine the National Registry of Exonerations from the University of Michigan to analyze individuals exonerated in the United States between 1989 and 2024 through descriptive statistics and statistical modeling. This document and our work are in progress.
 
-```{r data-loading, echo=FALSE}
+```{r data-loading}
+### -----------------------------------------------------------
+### Data Loading
 rm(list = ls()) # clear workspace
 # load data
 exonerees <- read.csv("data/exonerees1989-may2024.csv")
@@ -66,7 +74,7 @@ tag_vars <- c("F.MFE","FC","ILD","P.FA","DNA","MWID","OM","CV","IO","SA","CIU",
 exonerees <- exonerees %>% mutate_at(tag_vars, as.factor)
 ```
 
-```{r include=FALSE}
+```{r, include=FALSE}
 # make sure everything looks good
 summary(exonerees)
 dim(exonerees)
@@ -74,7 +82,9 @@ dim(exonerees)
 
 ### Which offenses do we examine?
 
-```{r ordered-sample-sizes-table, message=FALSE}
+```{r ordered-sample-sizes-table}
+### -----------------------------------------------------------
+### Ordered Sample Size Tables
 # offense frequency (ordered), overall and by race
 exonerees %>%
   select(Race, Worst.Crime.Display) %>%
@@ -99,6 +109,8 @@ exonerees %>%
 Table 1 shows the highest-frequency criminal offenses across groups of race. For example, we read the top-left-most cell as reporting that, among the 2,640 individuals in the National Registry of Exonerations whose alleged crime occurred during or after 1989, 875 or 33% were exonerated from a Murder conviction. Percents are column-wise.
 
 ```{r time-served-table}
+### -----------------------------------------------------------
+### Time Served Table
 # set headers to columns, for later use
 header_Incarcerated <- paste0("Incarcerated (",
                        formatC(sum(exonerees$Years.Incarcerated), big.mark = ","),
@@ -143,6 +155,202 @@ Table 2 was reproduced for each group of race (see Supplementary), which found t
 
 ### Distribution of years spent incarcerated and convicted, by offense and race
 
+```{r distribution-of-time-spent}
+### -----------------------------------------------------------
+### Distribution of years spent incarcerated and convicted, by offense and race
+## crime, by total time spent incarcerated
+plot_times <- function (data, crime_filter = NA) {
+  
+  # filter the data by crime (optional)
+  if (is.na(crime_filter)) {
+    crime_filter <- "all" # this is used later for labeling
+  } else {
+    data <- data %>% filter(Worst.Crime.Display == crime_filter)
+  }
+  
+  ## only include groups of race with 10 or more members present
+  # get counts
+  counts <- data %>%
+    group_by(Race) %>%
+    summarise(n = n()) %>%
+    filter(n >= 10)
+  # filter race groups with too few members
+  data <- data %>% filter(Race %in% counts$Race)
+  
+  # write the subtitle of the plot, which shows counts of race groups
+  gg_subtitle <- ""
+  included_races <- unique(data$Race)
+  for (i in 1:length(included_races)) {
+    race <- race_levels[i]
+    count <- nrow(data %>% filter(Race == race))
+    gg_subtitle <- paste0(
+      gg_subtitle, # previous groups
+      # title, count, and percent
+      race, ": ", count, " (", floor(100*count/nrow(data)), "%)")
+    # add a semi-colon if the list isn't done
+    if(i < length(included_races))
+      gg_subtitle <- paste0(gg_subtitle, "; ")
+    # add a new line after the fourth race group
+    if (i == 4)
+      gg_subtitle <- paste0(gg_subtitle, "\n")
+    }
+  
+  # plot distribution of time spent incarcerated
+  gg_incarated <- data %>%
+    filter(!is.na(Months.Incarcerated)) %>%
+    ggplot(aes(y = Months.Incarcerated, x = Race)) +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(width = 0.4, color = "aliceblue") +
+
+    # marker at 1 year
+    geom_hline(yintercept = 12, color = "red") +
+    # time spent wrongfully imprisoned
+    geom_violin() +
+    geom_boxplot(alpha = 0.5) +
+    
+    # plot specifics
+    ylab("Months imprisoned") + xlab("") +
+    scale_y_continuous(breaks = seq(0, 400, 120)) +
+    theme_bw() +
+    labs(
+    title = paste("Time spent incarcerated by exonerees of", crime_filter,
+                  "convictions"),
+    subtitle = gg_subtitle)
+  
+  # plot distribution of time spent convicted
+  gg_convicted <- data %>%
+    filter(!is.na(Months.Convicted)) %>%
+    ggplot(aes(y = Months.Convicted, x = Race)) +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(width = 0.4, color = "aliceblue") +
+
+    # marker at 1 year
+    geom_hline(yintercept = 12, color = "red") +
+    # time spent wrongfully convicted
+    geom_violin() +
+    geom_boxplot(alpha = 0.5) +
+    
+    # plot specifics
+    ylab("Months convicted") + xlab("") +
+    scale_y_continuous(breaks = seq(0, 400, 120)) +
+    theme_bw() +
+    labs(
+    title = paste("Time spent convicted by exonerees of", crime_filter,
+                  "convictions"),
+    subtitle = gg_subtitle)
+  
+  
+  return(list(incarceration_times = gg_incarated, 
+              conviction_times = gg_convicted))
+}
+
+# Overall
+gridExtra::grid.arrange(
+  plot_times(exonerees)$incarceration_times,
+  plot_times(exonerees)$conviction_times + labs(subtitle = NULL))
+
+# Murder
+plot_times(exonerees, crime_filter = "Murder")$incarceration_times
+plot_times(exonerees, crime_filter = "Murder")$conviction_times
+
+# Child sex abuse
+plot_times(exonerees, crime_filter = "Child Sex Abuse")$incarceration_times
+plot_times(exonerees, crime_filter = "Child Sex Abuse")$conviction_times
+
+# Sexual assault
+plot_times(exonerees, crime_filter = "Sexual Assault")$incarceration_times
+plot_times(exonerees, crime_filter = "Sexual Assault")$conviction_times
+
+# Robbery
+plot_times(exonerees, crime_filter = "Robbery")$incarceration_times
+plot_times(exonerees, crime_filter = "Robbery")$conviction_times
+
+# Attempted murder
+plot_times(exonerees, crime_filter = "Attempted Murder")$incarceration_times
+plot_times(exonerees, crime_filter = "Attempted Murder")$conviction_times
+
+# Drug possession or sale
+plot_times(exonerees, crime_filter = "Drug Possession or Sale")$incarceration_times
+plot_times(exonerees, crime_filter = "Drug Possession or Sale")$conviction_times
+
+# Assault
+plot_times(exonerees, crime_filter = "Assault")$incarceration_times
+plot_times(exonerees, crime_filter = "Assault")$conviction_times
+
+# Manslaughter
+plot_times(exonerees, crime_filter = "Manslaughter")$incarceration_times
+plot_times(exonerees, crime_filter = "Manslaughter")$conviction_times
+```
+
+
 ### Distribution of age at events, by offense and race
+
+# Supplementary
+
+#### i. Which offenses account for the most time spent wrongfully incarcerated and convicted for each race? \newline
+
+Table 2 has been recreated to show how the criminal offenses that account for the most time spent wrongfully incarcerated/convicted compare between groups of race.
+
+```{r supp-time-served-table}
+### -----------------------------------------------------------
+### Supplementary Time Served Table
+
+time_served_table <- function (race_filter) {
+  # filter exonerees by race
+  data <- exonerees %>% filter(Race == race_filter)
+  
+  # set headers to columns, for later use
+  header_Incarcerated <- paste0("Incarcerated (",
+                         formatC(sum(data$Years.Incarcerated), big.mark = ","),
+                         " total)")
+  header_Convicted <- paste0("Convicted (",
+                         formatC(sum(data$Years.Convicted), big.mark = ","),
+                        " total)")
+  
+  # time served incarcerated and convicted (ordered), by offense
+  table <- data %>%
+    group_by(Offense = Worst.Crime.Display) %>%
+    # summarize total years
+    summarise(Incarcerated = sum(Years.Incarcerated),
+              Convicted = sum(Years.Convicted)) %>%
+    # calculate percents
+    mutate(Incarcerated.perc = round(100*Incarcerated / sum(Incarcerated)),
+           Convicted.perc = round(100*Convicted / sum(Convicted))) %>%
+    # arrange
+    arrange(desc(Incarcerated)) %>%
+    # reformat count to character
+    mutate(Incarcerated = formatC(Incarcerated, big.mark = ","),
+           Convicted = formatC(Convicted, big.mark = ",")) %>%
+    # combine count and percent
+    mutate(Incarcerated = paste0(Incarcerated, " (", Incarcerated.perc, "%)"),
+           Convicted = paste0(Convicted, " (", Convicted.perc, "%)")) %>%
+    # remove unused columns
+    select(-contains(".perc")) %>%
+    # select top 5
+    head(5) %>%
+    # pretty print
+    kable(
+      # rename header to include total time across all offenses
+      col.names = c("Offense", header_Incarcerated, header_Convicted),
+      caption = paste("Total years spent incarcerated and convicted by",
+                      race_filter, "exonerees"))
+  return(table)
+}
+
+# iterate over all groups of race
+time_served_table("Black")
+time_served_table("White")
+time_served_table("Hispanic")
+time_served_table("Asian")
+time_served_table("Native American")
+time_served_table("Other")
+```
+
+\pagebreak
+
+## Code Appendix
+
+```{r allcode, ref.label = knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
 
 **Document in progress.**
