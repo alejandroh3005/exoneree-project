@@ -291,7 +291,7 @@ plot_times <- function (data, crime_filter = NA) {
       booktabs = TRUE,
       format.args = list(big.mark = ","),
       digits = 0,
-      caption = paste("Time spent convicted by exonerees of", crime_filter, 
+      caption = paste("Months spent convicted by exonerees of", crime_filter, 
                       "convictions")
       ) %>%
     # bold overall row
@@ -334,7 +334,7 @@ plot_times <- function (data, crime_filter = NA) {
       booktabs = TRUE,
       format.args = list(big.mark = ","),
       digits = 0,
-      caption = paste("Time spent incarcerated by exonerees of", crime_filter, 
+      caption = paste("Months spent incarcerated by exonerees of", crime_filter, 
                       "convictions")
       ) %>%
     # bold overall row
@@ -688,7 +688,7 @@ plot_times2 <- function (data, crime_filter = NA) {
       booktabs = TRUE,
       format.args = list(big.mark = ","),
       digits = 0,
-      caption = paste("Time spent convicted by exonerees of", crime_filter,
+      caption = paste("Months spent convicted by exonerees of", crime_filter,
                       "convictions")
       ) %>%
     # bold overall row
@@ -732,7 +732,7 @@ plot_times2 <- function (data, crime_filter = NA) {
       booktabs = TRUE,
       format.args = list(big.mark = ","),
       digits = 0,
-      caption = paste("Time spent incarcerated by exonerees of", crime_filter, 
+      caption = paste("Months spent incarcerated by exonerees of", crime_filter, 
                       "convictions")
       ) %>%
     # bold overall row
