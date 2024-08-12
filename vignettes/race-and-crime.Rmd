@@ -10,18 +10,22 @@ subtitle: Analysis of the U.S. National Registry of Exonerations
 ```{r setup, include=FALSE}
 ### -----------------------------------------------------------
 ### Setup
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE)
 knitr::opts_knit$set(root.dir = paste(head(unlist(strsplit(getwd(), "/")), -1),
                                       collapse = "/"))
-options(knitr.kable.NA = '-')
+# options(knitr.kable.NA = '-')
 labs = knitr::all_labels()
-labs = labs[!labs %in% c("setup", "llm_appendix", "allcode")]
+labs = labs[!labs %in% c("setup", "allcode")]
 
+# import required libraries
 library(tidyverse)
 library(gridExtra)
 library(gtsummary)
 library(gt)
 library(knitr)
+library(kableExtra)
 ```
 
 # Background
@@ -37,10 +41,12 @@ In this study, we examine the National Registry of Exonerations from the Univers
 ```{r data-loading}
 ### -----------------------------------------------------------
 ### Data Loading
-rm(list = ls()) # clear workspace
+
+# clear workspace
+rm(list = ls())
+
 # load data
 exonerees <- read.csv("data/exonerees1989-may2024.csv")
-
 
 # correct Crime Category to be a factor
 crime_levels <- c("Violent felony", "Misdemeanor", "Nonviolent felony", 
@@ -53,11 +59,11 @@ age_levels = c("0 - 17", "18 - 29", "30 - 39", "40 - 49", "50 - 64", "65 - 100")
 exonerees$Age.Group.at.Crime <- factor(exonerees$Age.Group.at.Crime, 
                                        levels = age_levels)
 exonerees$Age.Group.at.Conviction <- factor(exonerees$Age.Group.at.Conviction, 
-                                            levels = age_levels)
+                                       levels = age_levels)
 exonerees$Age.Group.at.Release <- factor(exonerees$Age.Group.at.Release, 
-                                         levels = age_levels)
+                                       levels = age_levels)
 exonerees$Age.Group.at.Exoneration <- factor(exonerees$Age.Group.at.Exoneration,
-                                             levels = age_levels)
+                                       levels = age_levels)
 
 # correct Race to be a factor
 race_levels <- c("Black", "White", "Hispanic", "Asian", "Native American",
@@ -85,10 +91,10 @@ dim(exonerees)
 ```{r ordered-sample-sizes-table}
 ### -----------------------------------------------------------
 ### Ordered Sample Size Tables
-# offense frequency (ordered), overall and by race
 exonerees %>%
   select(Race, Worst.Crime.Display) %>%
   filter(!is.na(Race)) %>%
+  # ordered frequency of offenses, overall and by race
   tbl_summary(
     by = Race,
     statistic = list(
@@ -102,8 +108,12 @@ exonerees %>%
   mutate(overall.count = parse_number(`**Overall**, N = 2,640`)) %>%
   arrange(desc(overall.count)) %>%
   select(-overall.count) %>%  # remove the overall count column
-  head() %>%
-  kable(caption = "List of high-frequency offenses, by race")
+  # only present the 6 most frequent offenses
+  head() %>% 
+  # table styling 
+  knitr::kable(
+    format = "simple", 
+    caption = "List of high-frequency offenses, by race")
 ```
 
 Table 1 shows the highest-frequency criminal offenses across groups of race. For example, we read the top-left-most cell as reporting that, among the 2,640 individuals in the National Registry of Exonerations whose alleged crime occurred during or after 1989, 875 or 33% were exonerated from a Murder conviction. Percents are column-wise.
@@ -111,13 +121,16 @@ Table 1 shows the highest-frequency criminal offenses across groups of race. For
 ```{r time-served-table}
 ### -----------------------------------------------------------
 ### Time Served Table
-# set headers to columns, for later use
-header_Incarcerated <- paste0("Incarcerated (",
-                       formatC(sum(exonerees$Years.Incarcerated), big.mark = ","),
-                       " total)")
-header_Convicted <- paste0("Convicted (",
-                       formatC(sum(exonerees$Years.Convicted), big.mark = ","),
-                      " total)")
+
+# write column headers now, for later use
+header_Incarcerated <- paste0(
+  "Incarcerated (", 
+  formatC(sum(exonerees$Years.Incarcerated), big.mark = ","),
+  " total)")
+header_Convicted <- paste0(
+  "Convicted (", 
+  formatC(sum(exonerees$Years.Convicted), big.mark = ","),
+  " total)")
 
 # time served incarcerated and convicted (ordered), by offense
 exonerees %>%
@@ -128,10 +141,10 @@ exonerees %>%
   # calculate percents
   mutate(Incarcerated.perc = round(100*Incarcerated / sum(Incarcerated)),
          Convicted.perc = round(100*Convicted / sum(Convicted))) %>%
-  # arrange and filter
+  # arrange and filter out offenses that collectively have not served 90+ years
   arrange(desc(Incarcerated)) %>%
   filter(Incarcerated > 90) %>%
-  # reformat count to character
+  # # reformat count to character
   mutate(Incarcerated = formatC(Incarcerated, big.mark = ","),
          Convicted = formatC(Convicted, big.mark = ",")) %>%
   # combine count and percent
@@ -139,7 +152,9 @@ exonerees %>%
          Convicted = paste0(Convicted, " (", Convicted.perc, "%)")) %>%
   # remove unused columns
   select(-contains(".perc")) %>%
-  kable(
+  # table styling 
+  knitr::kable(
+    format = "simple",
     # rename header to include total time across all offenses
     col.names = c("Offense", header_Incarcerated, header_Convicted),
     caption = "Total years spent incarcerated and convicted, by offense")
@@ -151,41 +166,45 @@ Table 2 was reproduced for each group of race (see Supplementary), which found t
 
 **These tables motivate us to compare the experience of people convicted of these popular and severe offenses between groups of race, so as to measure the extent to which sentence/incarceration is associated with race, within the National Registry of Exonerations.**
 
-# Analysis
+\pagebreak
 
-### Distribution of years spent incarcerated and convicted, by offense and race
+# I. Distribution of time spent incarcerated and convicted, by offense and race
 
-```{r distribution-of-time-spent}
+```{r function-plot-times}
 ### -----------------------------------------------------------
-### Distribution of years spent incarcerated and convicted, by offense and race
+### Distribution of time spent incarcerated and convicted, by offense and race
 ## crime, by total time spent incarcerated
 plot_times <- function (data, crime_filter = NA) {
   
-  # filter the data by crime (optional)
+  ## filter the data by crime (optional)
   if (is.na(crime_filter)) {
     crime_filter <- "all" # this is used later for labeling
   } else {
-    data <- data %>% filter(Worst.Crime.Display == crime_filter)
+    data <- data %>% 
+      filter(Worst.Crime.Display == crime_filter) %>%
+      filter(!is.na(Months.Incarcerated) & !is.na(Months.Convicted))
   }
   
-  ## only include groups of race with 10 or more members present
+  ## only plot groups of race with 10 or more members present
   # get counts
   counts <- data %>%
     group_by(Race) %>%
     summarise(n = n()) %>%
+    mutate(prop = n / sum(n)) %>%
     filter(n >= 10)
   # filter race groups with too few members
-  data <- data %>% filter(Race %in% counts$Race)
+  plot_data <- data %>% filter(Race %in% counts$Race)
   
-  # write the subtitle of the plot, which shows counts of race groups
+  ## write the subtitle of the plot, which shows counts of race groups
   gg_subtitle <- ""
-  included_races <- unique(data$Race)
+  included_races <- unique(plot_data$Race)
   for (i in 1:length(included_races)) {
     race <- race_levels[i]
-    count <- nrow(data %>% filter(Race == race))
+    count <- nrow(plot_data %>% filter(Race == race))
     gg_subtitle <- paste0(
       gg_subtitle, # previous groups
-      # title, count, and percent
+      # title, count, and percent (from data with all race groups)
+      # ensure percent is over 'data' not the race filtered 'plot_data'
       race, ": ", count, " (", floor(100*count/nrow(data)), "%)")
     # add a semi-colon if the list isn't done
     if(i < length(included_races))
@@ -195,95 +214,292 @@ plot_times <- function (data, crime_filter = NA) {
       gg_subtitle <- paste0(gg_subtitle, "\n")
     }
   
-  # plot distribution of time spent incarcerated
-  gg_incarated <- data %>%
-    filter(!is.na(Months.Incarcerated)) %>%
+  ## plot distribution of time spent incarcerated
+  gg_incarated <- plot_data %>%
     ggplot(aes(y = Months.Incarcerated, x = Race)) +
     # jitter points (these must be overlayed by the horizontal line)
     geom_jitter(width = 0.4, color = "aliceblue") +
-
     # marker at 1 year
     geom_hline(yintercept = 12, color = "red") +
     # time spent wrongfully imprisoned
     geom_violin() +
     geom_boxplot(alpha = 0.5) +
-    
     # plot specifics
-    ylab("Months imprisoned") + xlab("") +
     scale_y_continuous(breaks = seq(0, 400, 120)) +
     theme_bw() +
     labs(
-    title = paste("Time spent incarcerated by exonerees of", crime_filter,
-                  "convictions"),
-    subtitle = gg_subtitle)
+      x = "",
+      y = "Months imprisoned",
+      title = paste("Time spent incarcerated by exonerees of", 
+                    crime_filter, "convictions"),
+      subtitle = gg_subtitle
+      )
   
-  # plot distribution of time spent convicted
-  gg_convicted <- data %>%
-    filter(!is.na(Months.Convicted)) %>%
+  ## plot distribution of time spent convicted
+  gg_convicted <- plot_data %>%
     ggplot(aes(y = Months.Convicted, x = Race)) +
     # jitter points (these must be overlayed by the horizontal line)
     geom_jitter(width = 0.4, color = "aliceblue") +
-
     # marker at 1 year
     geom_hline(yintercept = 12, color = "red") +
     # time spent wrongfully convicted
     geom_violin() +
     geom_boxplot(alpha = 0.5) +
-    
     # plot specifics
-    ylab("Months convicted") + xlab("") +
     scale_y_continuous(breaks = seq(0, 400, 120)) +
     theme_bw() +
     labs(
-    title = paste("Time spent convicted by exonerees of", crime_filter,
-                  "convictions"),
-    subtitle = gg_subtitle)
+      x = "",
+      y = "Months convicted",
+      title = paste("Time spent convicted by exonerees of", 
+                    crime_filter, "convictions"),
+      subtitle = gg_subtitle
+      )
+  
+  ## tabular distribution of time spent convicted
+  tbl_convicted <- data %>%
+    # calculate summary statistics by race
+    group_by(across(Race)) %>%
+    summarize(
+      N = n(),
+      Sum = sum(Months.Convicted),
+      Quartile25 = quantile(Months.Convicted, 0.25, na.rm = TRUE),
+      Quartile50 = median(Months.Convicted, na.rm = TRUE),
+      Quartile75 = quantile(Months.Convicted, 0.75, na.rm = TRUE),
+      Mean = mean(Months.Convicted, na.rm = TRUE),
+      SD = sd(Months.Convicted, na.rm = TRUE)
+    ) %>%
+    # append a last row for summary statistics, regardless of race 
+    add_row(
+      data %>%
+        summarize(
+          Race = "All",
+          N = n(),
+          Sum = sum(Months.Convicted, na.rm = TRUE),
+          Quartile25 = quantile(Months.Convicted, 0.25, na.rm = TRUE),
+          Quartile50 = median(Months.Convicted, na.rm = TRUE),
+          Quartile75 = quantile(Months.Convicted, 0.75, na.rm = TRUE),
+          Mean = mean(Months.Convicted, na.rm = TRUE),
+          SD = sd(Months.Convicted, na.rm = TRUE)
+          )
+      ) %>%
+    # arrange by sample size (beginning with overall)
+    arrange(desc(N)) %>%
+    # table styling
+    knitr::kable(
+      format = "latex", 
+      booktabs = TRUE,
+      format.args = list(big.mark = ","),
+      digits = 0,
+      caption = paste("Time spent convicted by exonerees of", crime_filter, 
+                      "convictions")
+      ) %>%
+    # bold overall row
+    kableExtra::row_spec(1, background = "#D3D3D3") %>%
+    kableExtra::kable_styling(latex_options = "hold_position")
   
   
-  return(list(incarceration_times = gg_incarated, 
-              conviction_times = gg_convicted))
-}
+  ## tabular distribution of time spent incarcerated
+  tbl_incarcerated <- data %>%
+    # calculate summary statistics by race
+    group_by(across(Race)) %>%
+    summarize(
+      N = n(),
+      Sum = sum(Months.Incarcerated),
+      Quartile25 = quantile(Months.Incarcerated, 0.25, na.rm = TRUE),
+      Quartile50 = median(Months.Incarcerated, na.rm = TRUE),
+      Quartile75 = quantile(Months.Incarcerated, 0.75, na.rm = TRUE),
+      Mean = mean(Months.Incarcerated, na.rm = TRUE),
+      SD = sd(Months.Incarcerated, na.rm = TRUE)
+    ) %>%
+    # append a last row for summary statistics, regardless of race 
+    add_row(
+      data %>%
+        summarize(
+          Race = "All",
+          N = n(),
+          Sum = sum(Months.Incarcerated, na.rm = TRUE),
+          Quartile25 = quantile(Months.Incarcerated, 0.25, na.rm = TRUE),
+          Quartile50 = median(Months.Incarcerated, na.rm = TRUE),
+          Quartile75 = quantile(Months.Incarcerated, 0.75, na.rm = TRUE),
+          Mean = mean(Months.Incarcerated, na.rm = TRUE),
+          SD = sd(Months.Incarcerated, na.rm = TRUE)
+          )
+      ) %>%
+    # arrange by sample size (beginning with overall)
+    arrange(desc(N)) %>%
+    # table styling
+    knitr::kable(
+      format = "latex", 
+      booktabs = TRUE,
+      format.args = list(big.mark = ","),
+      digits = 0,
+      caption = paste("Time spent incarcerated by exonerees of", crime_filter, 
+                      "convictions")
+      ) %>%
+    # bold overall row
+    kableExtra::row_spec(1, background = "#D3D3D3") %>%
+    kableExtra::kable_styling(latex_options = "hold_position")
 
-# Overall
-gridExtra::grid.arrange(
-  plot_times(exonerees)$incarceration_times,
-  plot_times(exonerees)$conviction_times + labs(subtitle = NULL))
-
-# Murder
-plot_times(exonerees, crime_filter = "Murder")$incarceration_times
-plot_times(exonerees, crime_filter = "Murder")$conviction_times
-
-# Child sex abuse
-plot_times(exonerees, crime_filter = "Child Sex Abuse")$incarceration_times
-plot_times(exonerees, crime_filter = "Child Sex Abuse")$conviction_times
-
-# Sexual assault
-plot_times(exonerees, crime_filter = "Sexual Assault")$incarceration_times
-plot_times(exonerees, crime_filter = "Sexual Assault")$conviction_times
-
-# Robbery
-plot_times(exonerees, crime_filter = "Robbery")$incarceration_times
-plot_times(exonerees, crime_filter = "Robbery")$conviction_times
-
-# Attempted murder
-plot_times(exonerees, crime_filter = "Attempted Murder")$incarceration_times
-plot_times(exonerees, crime_filter = "Attempted Murder")$conviction_times
-
-# Drug possession or sale
-plot_times(exonerees, crime_filter = "Drug Possession or Sale")$incarceration_times
-plot_times(exonerees, crime_filter = "Drug Possession or Sale")$conviction_times
-
-# Assault
-plot_times(exonerees, crime_filter = "Assault")$incarceration_times
-plot_times(exonerees, crime_filter = "Assault")$conviction_times
-
-# Manslaughter
-plot_times(exonerees, crime_filter = "Manslaughter")$incarceration_times
-plot_times(exonerees, crime_filter = "Manslaughter")$conviction_times
+  
+  ## return plots and tables
+  return(list(
+    plot_conviction = gg_convicted,
+    plot_incarceration = gg_incarated,
+    table_convicted = tbl_convicted,
+    table_incarcerated = tbl_incarcerated)
+    )
+  }
 ```
 
+## Overall
 
-### Distribution of age at events, by offense and race
+```{r overall-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+## Overall stats
+overall_stats <- plot_times(exonerees)
+# plots
+overall_stats <- plot_times(exonerees)
+gridExtra::grid.arrange(overall_stats$plot_incarceration,
+                        overall_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+overall_stats$table_convicted
+overall_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Murder
+
+```{r murder-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+## Murder stats
+mdr_stats <- plot_times(exonerees, crime_filter = "Murder")
+# plots
+gridExtra::grid.arrange(mdr_stats$plot_incarceration,
+                        mdr_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+mdr_stats$table_convicted
+mdr_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Child sex abuse
+
+```{r child-sex-abuse-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Child sex abuse
+csa_stats <- plot_times(exonerees, crime_filter = "Child Sex Abuse")
+# plots
+gridExtra::grid.arrange(csa_stats$plot_incarceration,
+                        csa_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+csa_stats$table_convicted
+csa_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Sexual assault
+
+```{r sexual-assault-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Sexual assault
+sxa_stats <- plot_times(exonerees, crime_filter = "Sexual Assault")
+# plots
+gridExtra::grid.arrange(sxa_stats$plot_incarceration,
+                        sxa_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+sxa_stats$table_convicted
+sxa_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Robbery
+
+```{r robbery-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Robbery
+rby_stats <- plot_times(exonerees, crime_filter = "Robbery")
+# plots
+gridExtra::grid.arrange(rby_stats$plot_incarceration,
+                        rby_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+rby_stats$table_convicted
+rby_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Attempted murder
+
+```{r attempted-murder-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Attempted murder
+atm_stats <- plot_times(exonerees, crime_filter = "Attempted Murder")
+# plots
+gridExtra::grid.arrange(atm_stats$plot_incarceration,
+                        atm_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+atm_stats$table_convicted
+atm_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Drug possession or sale
+
+```{r drug-possession-or-sale-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Drug possession or sale
+dps_stats <- plot_times(exonerees, crime_filter = "Drug Possession or Sale")
+# plots
+gridExtra::grid.arrange(dps_stats$plot_incarceration,
+                        dps_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+dps_stats$table_convicted
+dps_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Assault
+
+```{r assault-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Assault
+asa_stats <- plot_times(exonerees, crime_filter = "Assault")
+# plots
+gridExtra::grid.arrange(asa_stats$plot_incarceration,
+                        asa_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+asa_stats$table_convicted
+asa_stats$table_incarcerated
+```
+
+\pagebreak
+
+## Manslaughter
+
+```{r manslaughter-stats, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+# Manslaughter
+msl_stats <- plot_times(exonerees, crime_filter = "Manslaughter")
+# plots
+gridExtra::grid.arrange(msl_stats$plot_incarceration,
+                        msl_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+msl_stats$table_convicted
+msl_stats$table_incarcerated
+```
+
+\pagebreak
+
+# II. Distribution of age at events, by offense and race
+
+\pagebreak
 
 # Supplementary
 
@@ -299,7 +515,7 @@ time_served_table <- function (race_filter) {
   # filter exonerees by race
   data <- exonerees %>% filter(Race == race_filter)
   
-  # set headers to columns, for later use
+  # write column headers now, for later use
   header_Incarcerated <- paste0("Incarcerated (",
                          formatC(sum(data$Years.Incarcerated), big.mark = ","),
                          " total)")
@@ -316,7 +532,7 @@ time_served_table <- function (race_filter) {
     # calculate percents
     mutate(Incarcerated.perc = round(100*Incarcerated / sum(Incarcerated)),
            Convicted.perc = round(100*Convicted / sum(Convicted))) %>%
-    # arrange
+    # arrange by total years spent incarcerated 
     arrange(desc(Incarcerated)) %>%
     # reformat count to character
     mutate(Incarcerated = formatC(Incarcerated, big.mark = ","),
@@ -328,8 +544,9 @@ time_served_table <- function (race_filter) {
     select(-contains(".perc")) %>%
     # select top 5
     head(5) %>%
-    # pretty print
-    kable(
+    # table styling 
+    knitr::kable(
+      format = "simple",
       # rename header to include total time across all offenses
       col.names = c("Offense", header_Incarcerated, header_Convicted),
       caption = paste("Total years spent incarcerated and convicted by",
@@ -348,9 +565,245 @@ time_served_table("Other")
 
 \pagebreak
 
+#### ii. How does the distribution of time spent incarcerated/convicted for a particular class of offense compare between races?
+
+```{r supp-plot-times, fig.align='center', fig.height=6}
+### -----------------------------------------------------------
+### Distribution of time spent incarcerated and convicted, by class of offense 
+### and race, by total time spent incarcerated
+plot_times2 <- function (data, crime_filter = NA) {
+  
+  ## filter the data by crime (optional)
+  if (is.na(crime_filter)) {
+    crime_filter <- "all" # this is used later for labeling
+  } else {
+    data <- data %>% 
+      filter(Crime.Category == crime_filter) %>%
+      filter(!is.na(Months.Incarcerated) & !is.na(Months.Convicted))
+  }
+  
+  ## only plot groups of race with 10 or more members present
+  # get counts
+  counts <- data %>%
+    group_by(Race) %>%
+    summarise(n = n()) %>%
+    mutate(prop = n / sum(n)) %>%
+    filter(n >= 10)
+  # filter race groups with too few members
+  plot_data <- data %>% filter(Race %in% counts$Race)
+  
+  ## write the subtitle of the plot, which shows counts of race groups
+  gg_subtitle <- ""
+  included_races <- unique(plot_data$Race)
+  for (i in 1:length(included_races)) {
+    race <- race_levels[i]
+    count <- nrow(plot_data %>% filter(Race == race))
+    gg_subtitle <- paste0(
+      gg_subtitle, # previous groups
+      # title, count, and percent (from data with all race groups)
+      # ensure percent is over 'data' not the race filtered 'plot_data'
+      race, ": ", count, " (", floor(100*count/nrow(data)), "%)")
+    # add a semi-colon if the list isn't done
+    if(i < length(included_races))
+      gg_subtitle <- paste0(gg_subtitle, "; ")
+    # add a new line after the fourth race group
+    if (i == 4)
+      gg_subtitle <- paste0(gg_subtitle, "\n")
+    }
+  
+  ## plot distribution of time spent incarcerated
+  gg_incarated <- plot_data %>%
+    ggplot(aes(y = Months.Incarcerated, x = Race)) +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(width = 0.4, color = "aliceblue") +
+    # marker at 1 year
+    geom_hline(yintercept = 12, color = "red") +
+    # time spent wrongfully imprisoned
+    geom_violin() +
+    geom_boxplot(alpha = 0.5) +
+    # plot specifics
+    scale_y_continuous(breaks = seq(0, 400, 120)) +
+    theme_bw() +
+    labs(
+      x = "",
+      y = "Months imprisoned",
+      title = paste("Time spent incarcerated by exonerees of", 
+                    crime_filter, "convictions"),
+      subtitle = gg_subtitle
+      )
+  
+  ## plot distribution of time spent convicted
+  gg_convicted <- plot_data %>%
+    ggplot(aes(y = Months.Convicted, x = Race)) +
+    # jitter points (these must be overlayed by the horizontal line)
+    geom_jitter(width = 0.4, color = "aliceblue") +
+    # marker at 1 year
+    geom_hline(yintercept = 12, color = "red") +
+    # time spent wrongfully convicted
+    geom_violin() +
+    geom_boxplot(alpha = 0.5) +
+    # plot specifics
+    scale_y_continuous(breaks = seq(0, 400, 120)) +
+    theme_bw() +
+    labs(
+      x = "",
+      y = "Months convicted",
+      title = paste("Time spent convicted by exonerees of", 
+                    crime_filter, "convictions"),
+      subtitle = gg_subtitle
+      )
+  
+  ## tabular distribution of time spent convicted
+  tbl_convicted <- data %>%
+    # calculate summary statistics by race
+    group_by(across(Race)) %>%
+    summarize(
+      N = n(),
+      Sum = sum(Months.Convicted),
+      Quartile25 = quantile(Months.Convicted, 0.25, na.rm = TRUE),
+      Quartile50 = median(Months.Convicted, na.rm = TRUE),
+      Quartile75 = quantile(Months.Convicted, 0.75, na.rm = TRUE),
+      Mean = mean(Months.Convicted, na.rm = TRUE),
+      SD = sd(Months.Convicted, na.rm = TRUE)
+      ) %>%
+    # append a last row for summary statistics, regardless of race 
+    add_row(
+      data %>%
+        summarize(
+          Race = "All",
+          N = n(),
+          Sum = sum(Months.Convicted, na.rm = TRUE),
+          Quartile25 = quantile(Months.Convicted, 0.25, na.rm = TRUE),
+          Quartile50 = median(Months.Convicted, na.rm = TRUE),
+          Quartile75 = quantile(Months.Convicted, 0.75, na.rm = TRUE),
+          Mean = mean(Months.Convicted, na.rm = TRUE),
+          SD = sd(Months.Convicted, na.rm = TRUE)
+          )
+      ) %>%
+    # arrange by sample size (beginning with overall)
+    arrange(desc(N)) %>%
+    # table styling
+    knitr::kable(
+      format = "latex", 
+      booktabs = TRUE,
+      format.args = list(big.mark = ","),
+      digits = 0,
+      caption = paste("Time spent convicted by exonerees of", crime_filter,
+                      "convictions")
+      ) %>%
+    # bold overall row
+    kableExtra::row_spec(1, background = "#D3D3D3") %>%
+    kableExtra::kable_styling(latex_options = "hold_position")
+  
+  
+  
+  ## tabular distribution of time spent incarcerated
+  tbl_incarcerated <- data %>%
+    # calculate summary statistics by race
+    group_by(across(Race)) %>%
+    summarize(
+      N = n(),
+      Sum = sum(Months.Incarcerated),
+      Quartile25 = quantile(Months.Incarcerated, 0.25, na.rm = TRUE),
+      Quartile50 = median(Months.Incarcerated, na.rm = TRUE),
+      Quartile75 = quantile(Months.Incarcerated, 0.75, na.rm = TRUE),
+      Mean = mean(Months.Incarcerated, na.rm = TRUE),
+      SD = sd(Months.Incarcerated, na.rm = TRUE)
+    ) %>%
+    # append a last row for summary statistics, regardless of race 
+    add_row(
+      data %>%
+        summarize(
+          Race = "All",
+          N = n(),
+          Sum = sum(Months.Incarcerated, na.rm = TRUE),
+          Quartile25 = quantile(Months.Incarcerated, 0.25, na.rm = TRUE),
+          Quartile50 = median(Months.Incarcerated, na.rm = TRUE),
+          Quartile75 = quantile(Months.Incarcerated, 0.75, na.rm = TRUE),
+          Mean = mean(Months.Incarcerated, na.rm = TRUE),
+          SD = sd(Months.Incarcerated, na.rm = TRUE)
+          )
+      ) %>%
+    # arrange by sample size (beginning with overall)
+    arrange(desc(N)) %>%
+    # table styling
+    knitr::kable(
+      format = "latex", 
+      booktabs = TRUE,
+      format.args = list(big.mark = ","),
+      digits = 0,
+      caption = paste("Time spent incarcerated by exonerees of", crime_filter, 
+                      "convictions")
+      ) %>%
+    # bold overall row
+    kableExtra::row_spec(1, background = "#D3D3D3") %>%
+    kableExtra::kable_styling(latex_options = "hold_position")
+
+  
+  ## return plots and tables
+  return(list(
+    plot_conviction = gg_convicted,
+    plot_incarceration = gg_incarated,
+    table_convicted = tbl_convicted,
+    table_incarcerated = tbl_incarcerated)
+    )
+  }
+```
+
+### Violent felony
+
+```{r, fig.align='center', fig.height=6}
+## Violent felony
+vlf_stats <- plot_times2(exonerees, crime_filter = "Violent felony")
+# plots
+gridExtra::grid.arrange(vlf_stats$plot_incarceration,
+                        vlf_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+vlf_stats$table_convicted
+vlf_stats$table_incarcerated
+```
+
+\newpage
+
+### Misdemeanor
+
+```{r, fig.align='center', fig.height=6}
+## Misdemeanor
+msd_stats <- plot_times2(exonerees, crime_filter = "Misdemeanor")
+# plots
+gridExtra::grid.arrange(msd_stats$plot_incarceration,
+                        msd_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+msd_stats$table_convicted
+msd_stats$table_incarcerated
+```
+
+\newpage
+
+### Nonviolent felony
+
+```{r, fig.align='center', fig.height=6}
+## Nonviolent felony
+nvf_stats <- plot_times2(exonerees, crime_filter = "Nonviolent felony")
+# plots
+gridExtra::grid.arrange(nvf_stats$plot_incarceration,
+                        nvf_stats$plot_conviction + labs(subtitle = NULL))
+# tables
+nvf_stats$table_convicted
+nvf_stats$table_incarcerated
+```
+
+### Misconduct
+
+This class of offense had zero months of times spent incarcerated or convicted. This doesn't necessarily mean zero time, only zero complete months, because our current variable for time is measured in months, as an integer.
+
+**End of report.**
+
+\pagebreak
+
 ## Code Appendix
 
 ```{r allcode, ref.label = knitr::all_labels(), echo=TRUE, eval=FALSE}
 ```
 
-**Document in progress.**
+**End of document**

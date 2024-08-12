@@ -12,4 +12,8 @@
 
 **Alejandro** corrected the feature engineering script to now remove an invalid observation (Anthony Gayle).
 
-**Alejandro** compared groups of race, adjusting for offense. He created a table for sample size and years served, and plots for age distributions, as well as longitudinal plots to visual how difference behave throughout time.
+**Alejandro** compared groups of race, adjusting for offense. He created a table for sample size and years served, and plots for age distributions.
+
+# August 12
+
+**Alejandro** completed functions to illustrate in multiple forms the distribution of years spent incarcerated and convicted, by offense and race.
