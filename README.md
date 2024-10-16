@@ -21,16 +21,16 @@ Registry of Exonerations from the University of Michigan to analyze individuals 
 1989 through descriptive statistics and statistical modeling. This document and our work are in progress.
 
 ## Race and Crime
-### Conducted the Spring and Summer seasons of 2024
+#### Conducted the Spring and Summer seasons of 2024
 
 This preceeding work aimed to describe univariate and intersectional profiles of sex, race, age (at conviction), and 
 (alleged) crime. We also sought to visualize compare distributions of age at events (alleged crime, conviction, release, 
 exoneration) by race.
 
-**Please contact Alejandro Hernandez at alejh@uw.edu for further information.**
-
 ## Race and Wrongful Conviction
-### To be completed the Autumn season of 2024
+#### To be completed the Autumn season of 2024
 
 This new work aims to study causes of wrongful convictions and explore associations with official misconduct, 
 again with considerations of race and profiles we have found in our preliminary work.
+
+**Please contact Alejandro Hernandez at alejh@uw.edu for further information.**
